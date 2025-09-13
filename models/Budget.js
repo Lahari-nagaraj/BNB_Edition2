@@ -36,12 +36,46 @@ const budgetSchema = new mongoose.Schema(
     creator: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     assignedEditors: [{
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Editor'
+      ref: 'User'
     }],
     // Keep for backward compatibility
     editorEmail: String,
     editorPassword: String,
     expenses: [expenseSchema], // Keep for backward compatibility
+    
+    // Project Hierarchy
+    departments: [{
+      name: { type: String, required: true },
+      allocatedBudget: { type: Number, required: true },
+      spent: { type: Number, default: 0 },
+      remaining: { type: Number, default: function() { return this.allocatedBudget - this.spent; } },
+      vendors: [{
+        name: { type: String, required: true },
+        contactInfo: {
+          email: String,
+          phone: String,
+          address: String
+        },
+        allocatedBudget: { type: Number, required: true },
+        spent: { type: Number, default: 0 },
+        remaining: { type: Number, default: function() { return this.allocatedBudget - this.spent; } },
+        workDescription: String,
+        status: { type: String, enum: ["pending", "in_progress", "completed", "on_hold"], default: "pending" },
+        startDate: Date,
+        endDate: Date,
+        transactions: [{
+          description: String,
+          amount: Number,
+          date: { type: Date, default: Date.now },
+          receipt: {
+            url: String,
+            publicId: String,
+            filename: String
+          },
+          addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+        }]
+      }]
+    }],
     startDate: { type: Date },
     endDate: { type: Date },
     description: { type: String },

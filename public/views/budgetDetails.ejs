@@ -82,6 +82,7 @@
     <a href="/budget/<%= budget._id %>/edit"><button>Edit Budget</button></a>
     <a href="/budget/<%= budget._id %>/departments"><button class="btn-primary">Manage Departments</button></a>
     <% } %>
+    <a href="/budget/<%= budget._id %>/visualization"><button class="btn-info">📊 Analytics & Visualization</button></a>
     <% if(session.isAdmin && budget.status === 'pending'){ %>
     <form method="post" action="/budget/<%= budget._id %>/approve" style="display: inline;">
       <button type="submit" class="btn-approve">Approve Budget</button>

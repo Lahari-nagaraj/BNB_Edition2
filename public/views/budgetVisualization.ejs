@@ -1,0 +1,575 @@
+<%- include('partials/header') %>
+
+<div class="dashboard-container">
+  <div class="dashboard-header">
+    <h2>📊 Budget Visualization & Analytics</h2>
+    <div class="header-actions">
+      <button onclick="refreshData()" class="btn-primary">🔄 Refresh Data</button>
+      <button onclick="exportData()" class="btn-secondary">📥 Export Report</button>
+    </div>
+  </div>
+
+  <!-- Key Metrics Cards -->
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-icon">💰</div>
+      <div class="metric-content">
+        <h3>Total Budget</h3>
+        <p class="metric-value">₹<%= budget.totalBudget.toLocaleString() %></p>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon">📈</div>
+      <div class="metric-content">
+        <h3>Spent</h3>
+        <p class="metric-value">₹<%= budget.spent.toLocaleString() %></p>
+        <p class="metric-percentage"><%= ((budget.spent / budget.totalBudget) * 100).toFixed(1) %>%</p>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon">📉</div>
+      <div class="metric-content">
+        <h3>Remaining</h3>
+        <p class="metric-value">₹<%= budget.remaining.toLocaleString() %></p>
+        <p class="metric-percentage"><%= ((budget.remaining / budget.totalBudget) * 100).toFixed(1) %>%</p>
+      </div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-icon">⚠️</div>
+      <div class="metric-content">
+        <h3>Anomalies</h3>
+        <p class="metric-value" id="anomalyCount">-</p>
+        <p class="metric-subtitle">Active Alerts</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Section -->
+  <div class="charts-section">
+    <div class="chart-container">
+      <h3>📊 Budget Spending Pattern</h3>
+      <canvas id="spendingChart"></canvas>
+    </div>
+    
+    <div class="chart-container">
+      <h3>🏢 Department Allocation</h3>
+      <canvas id="departmentChart"></canvas>
+    </div>
+    
+    <div class="chart-container">
+      <h3>📈 Monthly Trends</h3>
+      <canvas id="trendsChart"></canvas>
+    </div>
+    
+    <div class="chart-container">
+      <h3>🔍 Vendor Analysis</h3>
+      <canvas id="vendorChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Anomaly Detection Section -->
+  <div class="anomaly-section">
+    <h3>🚨 Anomaly Detection</h3>
+    <div id="anomalyList" class="anomaly-list">
+      <!-- Anomalies will be loaded here -->
+    </div>
+  </div>
+
+  <!-- Community Feedback Section -->
+  <div class="feedback-section">
+    <h3>💬 Community Feedback</h3>
+    <div class="feedback-form">
+      <textarea id="feedbackMessage" placeholder="Share your thoughts, suggestions, or concerns about this budget..."></textarea>
+      <div class="feedback-actions">
+        <select id="feedbackType">
+          <option value="suggestion">Suggestion</option>
+          <option value="complaint">Complaint</option>
+          <option value="question">Question</option>
+          <option value="praise">Praise</option>
+          <option value="concern">Concern</option>
+        </select>
+        <button onclick="submitFeedback()" class="btn-primary">Submit Feedback</button>
+      </div>
+    </div>
+    <div id="feedbackList" class="feedback-list">
+      <!-- Feedback will be loaded here -->
+    </div>
+  </div>
+
+  <!-- Project Hierarchy Section -->
+  <div class="hierarchy-section">
+    <h3>🏗️ Project Hierarchy</h3>
+    <div class="hierarchy-controls">
+      <button onclick="addDepartment()" class="btn-primary">➕ Add Department</button>
+    </div>
+    <div id="hierarchyTree" class="hierarchy-tree">
+      <!-- Project hierarchy will be displayed here -->
+    </div>
+  </div>
+</div>
+
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.metric-card {
+  background: var(--card-gradient);
+  padding: 1.5rem;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-light);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: var(--transition);
+}
+
+.metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-medium);
+}
+
+.metric-icon {
+  font-size: 2.5rem;
+  opacity: 0.8;
+}
+
+.metric-content h3 {
+  margin: 0 0 0.5rem 0;
+  color: var(--secondary-color);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.metric-value {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.metric-percentage {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.9rem;
+  color: var(--success-color);
+  font-weight: 600;
+}
+
+.metric-subtitle {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.8rem;
+  color: var(--secondary-color);
+}
+
+.charts-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.chart-container {
+  background: white;
+  padding: 1.5rem;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-light);
+}
+
+.chart-container h3 {
+  margin: 0 0 1rem 0;
+  color: var(--secondary-color);
+  font-size: 1.1rem;
+}
+
+.chart-container canvas {
+  max-height: 300px;
+}
+
+.anomaly-section, .feedback-section, .hierarchy-section {
+  background: white;
+  padding: 1.5rem;
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-light);
+  margin-bottom: 2rem;
+}
+
+.anomaly-list, .feedback-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.anomaly-item, .feedback-item {
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--border-radius);
+  margin-bottom: 1rem;
+  background: #f8f9fa;
+}
+
+.anomaly-item.critical {
+  border-left: 4px solid #dc2626;
+  background: #fef2f2;
+}
+
+.anomaly-item.high {
+  border-left: 4px solid #f59e0b;
+  background: #fffbeb;
+}
+
+.anomaly-item.medium {
+  border-left: 4px solid #3b82f6;
+  background: #eff6ff;
+}
+
+.feedback-form {
+  margin-bottom: 2rem;
+}
+
+.feedback-form textarea {
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--border-radius);
+  margin-bottom: 1rem;
+  resize: vertical;
+  min-height: 100px;
+}
+
+.feedback-actions {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.feedback-actions select {
+  padding: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--border-radius);
+}
+
+.hierarchy-tree {
+  margin-top: 1rem;
+}
+
+.hierarchy-node {
+  margin: 0.5rem 0;
+  padding: 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--border-radius);
+  background: #f8f9fa;
+}
+
+.hierarchy-node.department {
+  border-left: 4px solid var(--primary-color);
+}
+
+.hierarchy-node.vendor {
+  border-left: 4px solid var(--success-color);
+  margin-left: 2rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .charts-section {
+    grid-template-columns: 1fr;
+  }
+  
+  .metrics-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+  
+  .feedback-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+</style>
+
+<script>
+let charts = {};
+
+// Initialize charts when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  initializeCharts();
+  loadAnomalies();
+  loadFeedback();
+  loadHierarchy();
+});
+
+function initializeCharts() {
+  // Spending Pattern Chart
+  const spendingCtx = document.getElementById('spendingChart').getContext('2d');
+  charts.spending = new Chart(spendingCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Spent', 'Remaining'],
+      datasets: [{
+        data: [<%= budget.spent %>, <%= budget.remaining %>],
+        backgroundColor: ['#ef4444', '#10b981'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }
+  });
+
+  // Department Chart
+  const departmentCtx = document.getElementById('departmentChart').getContext('2d');
+  charts.department = new Chart(departmentCtx, {
+    type: 'bar',
+    data: {
+      labels: ['Department 1', 'Department 2', 'Department 3'],
+      datasets: [{
+        label: 'Allocated Budget',
+        data: [1000000, 1500000, 2000000],
+        backgroundColor: '#3b82f6'
+      }, {
+        label: 'Spent',
+        data: [600000, 800000, 1200000],
+        backgroundColor: '#ef4444'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return '₹' + value.toLocaleString();
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Trends Chart
+  const trendsCtx = document.getElementById('trendsChart').getContext('2d');
+  charts.trends = new Chart(trendsCtx, {
+    type: 'line',
+    data: {
+      labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+      datasets: [{
+        label: 'Monthly Spending',
+        data: [200000, 350000, 500000, 650000, 800000, 950000],
+        borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        tension: 0.4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: function(value) {
+              return '₹' + value.toLocaleString();
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Vendor Chart
+  const vendorCtx = document.getElementById('vendorChart').getContext('2d');
+  charts.vendor = new Chart(vendorCtx, {
+    type: 'pie',
+    data: {
+      labels: ['Vendor A', 'Vendor B', 'Vendor C', 'Vendor D'],
+      datasets: [{
+        data: [30, 25, 20, 25],
+        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444']
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }
+  });
+}
+
+async function loadAnomalies() {
+  try {
+    const response = await fetch(`/api/anomalies/<%= budget._id %>`);
+    const data = await response.json();
+    
+    const anomalyList = document.getElementById('anomalyList');
+    const anomalyCount = document.getElementById('anomalyCount');
+    
+    anomalyCount.textContent = data.anomalies.length;
+    
+    if (data.anomalies.length === 0) {
+      anomalyList.innerHTML = '<p class="no-data">No anomalies detected. Great job! 🎉</p>';
+      return;
+    }
+    
+    anomalyList.innerHTML = data.anomalies.map(anomaly => `
+      <div class="anomaly-item ${anomaly.severity}">
+        <h4>${anomaly.title}</h4>
+        <p>${anomaly.description}</p>
+        <div class="anomaly-meta">
+          <span class="severity-badge">${anomaly.severity.toUpperCase()}</span>
+          <span class="anomaly-date">${new Date(anomaly.detectedAt).toLocaleDateString()}</span>
+        </div>
+        <button onclick="resolveAnomaly('${anomaly._id}')" class="btn-small btn-primary">Resolve</button>
+      </div>
+    `).join('');
+  } catch (error) {
+    console.error('Error loading anomalies:', error);
+  }
+}
+
+async function loadFeedback() {
+  try {
+    const response = await fetch(`/api/feedback/<%= budget._id %>`);
+    const data = await response.json();
+    
+    const feedbackList = document.getElementById('feedbackList');
+    
+    if (data.feedback.length === 0) {
+      feedbackList.innerHTML = '<p class="no-data">No feedback yet. Be the first to share your thoughts!</p>';
+      return;
+    }
+    
+    feedbackList.innerHTML = data.feedback.map(feedback => `
+      <div class="feedback-item">
+        <div class="feedback-header">
+          <h4>${feedback.title}</h4>
+          <span class="feedback-type">${feedback.type}</span>
+        </div>
+        <p>${feedback.message}</p>
+        <div class="feedback-meta">
+          <span class="feedback-author">${feedback.userId ? feedback.userId.name : 'Anonymous'}</span>
+          <span class="feedback-date">${new Date(feedback.createdAt).toLocaleDateString()}</span>
+        </div>
+        ${feedback.adminResponse ? `
+          <div class="admin-response">
+            <strong>Admin Response:</strong>
+            <p>${feedback.adminResponse.message}</p>
+          </div>
+        ` : ''}
+      </div>
+    `).join('');
+  } catch (error) {
+    console.error('Error loading feedback:', error);
+  }
+}
+
+async function loadHierarchy() {
+  // This would load the project hierarchy from the budget data
+  const hierarchyTree = document.getElementById('hierarchyTree');
+  hierarchyTree.innerHTML = '<p>Project hierarchy will be displayed here based on budget departments and vendors.</p>';
+}
+
+async function submitFeedback() {
+  const message = document.getElementById('feedbackMessage').value;
+  const type = document.getElementById('feedbackType').value;
+  
+  if (!message.trim()) {
+    alert('Please enter your feedback message.');
+    return;
+  }
+  
+  try {
+    const response = await fetch('/api/feedback', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        budgetId: '<%= budget._id %>',
+        type: type,
+        title: message.substring(0, 50) + (message.length > 50 ? '...' : ''),
+        message: message,
+        category: 'other'
+      })
+    });
+    
+    if (response.ok) {
+      alert('Feedback submitted successfully!');
+      document.getElementById('feedbackMessage').value = '';
+      loadFeedback();
+    } else {
+      alert('Failed to submit feedback. Please try again.');
+    }
+  } catch (error) {
+    console.error('Error submitting feedback:', error);
+    alert('Error submitting feedback. Please try again.');
+  }
+}
+
+async function resolveAnomaly(anomalyId) {
+  const resolution = prompt('Please provide a resolution for this anomaly:');
+  if (!resolution) return;
+  
+  try {
+    const response = await fetch(`/api/anomalies/${anomalyId}/resolve`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ resolution })
+    });
+    
+    if (response.ok) {
+      alert('Anomaly resolved successfully!');
+      loadAnomalies();
+    } else {
+      alert('Failed to resolve anomaly. Please try again.');
+    }
+  } catch (error) {
+    console.error('Error resolving anomaly:', error);
+    alert('Error resolving anomaly. Please try again.');
+  }
+}
+
+function addDepartment() {
+  const name = prompt('Enter department name:');
+  const budget = prompt('Enter allocated budget:');
+  
+  if (!name || !budget) return;
+  
+  // This would call the API to add a department
+  console.log('Adding department:', name, budget);
+}
+
+function refreshData() {
+  loadAnomalies();
+  loadFeedback();
+  loadHierarchy();
+}
+
+function exportData() {
+  // This would generate and download a report
+  console.log('Exporting data...');
+}
+</script>
+
+<%- include('partials/footer') %>

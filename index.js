@@ -13,10 +13,13 @@ const Vendor = require("./models/Vendor");
 const Transaction = require("./models/Transaction");
 const AuditLog = require("./models/AuditLog");
 const Editor = require("./models/Editor");
+const Anomaly = require("./models/Anomaly");
+const Feedback = require("./models/Feedback");
 const aiService = require("./services/aiService");
 const visualizationService = require("./services/visualizationService");
 const { cloudinaryService, upload } = require("./services/cloudinaryService");
 const ocrService = require("./services/ocrService");
+const anomalyService = require("./services/anomalyService");
 const multer = require("multer");
 
 const app = express();
@@ -1238,6 +1241,32 @@ app.post("/budget/:id/add-expense", upload.single('receipt'), async (req, res) =
   }
 });
 
+// DATA MIGRATION ROUTE - Fix existing data
+app.get("/fix-data", async (req, res) => {
+  try {
+    // Fix budgets with string creator values
+    await Budget.updateMany(
+      { creator: { $type: "string" } },
+      { $set: { creator: new mongoose.Types.ObjectId() } }
+    );
+    
+    // Fix transactions with missing required fields
+    await Transaction.updateMany(
+      { $or: [
+        { vendorId: { $exists: false } },
+        { projectId: { $exists: false } },
+        { departmentId: { $exists: false } }
+      ]},
+      { $unset: { vendorId: "", projectId: "", departmentId: "" } }
+    );
+    
+    res.json({ message: "Data migration completed successfully" });
+  } catch (error) {
+    console.error("Migration error:", error);
+    res.status(500).json({ error: "Migration failed" });
+  }
+});
+
 // TEST DATA ROUTE (Remove in production)
 app.get("/add-test-data", async (req, res) => {
   try {
@@ -1346,11 +1375,11 @@ User question: ${USER_PROMPT}`;
       .filter((line) => line.trim() !== "")
       .join("\n");
     
-    res.json({ reply, model_used: "gpt-oss-120b" });
+    res.json({ response: reply, model_used: "gpt-oss-120b" });
   } catch (error) {
     console.error('Chatbot error:', error);
     res.json({
-      reply: "I'm here to help with budget transparency questions! How can I assist you today?",
+      response: "I'm here to help with budget transparency questions! How can I assist you today?",
     });
   }
 });
@@ -1421,17 +1450,6 @@ app.get("/api/budget/:id/sankey", async (req, res) => {
   }
 });
 
-// Chatbot API
-app.post("/api/chatbot", async (req, res) => {
-  try {
-    const { message, context } = req.body;
-    const response = await aiService.generateChatbotResponse(message, context);
-    res.json({ response });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Failed to generate chatbot response" });
-  }
-});
 
 // QR Code Generation API
 app.get("/api/transaction/:id/qr", async (req, res) => {
@@ -1548,6 +1566,146 @@ app.get("/budget/:id/enhanced", async (req, res) => {
     });
   } catch (error) {
     console.error(error);
+    res.status(500).send("Server Error");
+  }
+});
+
+// ANOMALY DETECTION ROUTES
+app.get("/api/anomalies/:budgetId", async (req, res) => {
+  try {
+    const anomalies = await anomalyService.getActiveAnomalies(req.params.budgetId);
+    res.json({ anomalies });
+  } catch (error) {
+    console.error("Error fetching anomalies:", error);
+    res.status(500).json({ error: "Failed to fetch anomalies" });
+  }
+});
+
+app.post("/api/anomalies/:anomalyId/resolve", async (req, res) => {
+  try {
+    const { resolution } = req.body;
+    const anomaly = await anomalyService.resolveAnomaly(
+      req.params.anomalyId, 
+      req.session.userId, 
+      resolution
+    );
+    res.json({ message: "Anomaly resolved successfully", anomaly });
+  } catch (error) {
+    console.error("Error resolving anomaly:", error);
+    res.status(500).json({ error: "Failed to resolve anomaly" });
+  }
+});
+
+// COMMUNITY FEEDBACK ROUTES
+app.post("/api/feedback", async (req, res) => {
+  try {
+    const feedbackData = {
+      ...req.body,
+      userId: req.session.userId || undefined
+    };
+    
+    const feedback = new Feedback(feedbackData);
+    await feedback.save();
+    
+    res.json({ message: "Feedback submitted successfully", feedback });
+  } catch (error) {
+    console.error("Error submitting feedback:", error);
+    res.status(500).json({ error: "Failed to submit feedback" });
+  }
+});
+
+app.get("/api/feedback/:budgetId", async (req, res) => {
+  try {
+    const feedback = await Feedback.find({ 
+      budgetId: req.params.budgetId,
+      status: { $ne: "rejected" }
+    })
+    .populate("userId", "name")
+    .sort({ createdAt: -1 });
+    
+    res.json({ feedback });
+  } catch (error) {
+    console.error("Error fetching feedback:", error);
+    res.status(500).json({ error: "Failed to fetch feedback" });
+  }
+});
+
+// PROJECT HIERARCHY ROUTES
+app.post("/api/budget/:budgetId/departments", async (req, res) => {
+  try {
+    const { name, allocatedBudget } = req.body;
+    const budget = await Budget.findById(req.params.budgetId);
+    
+    if (!budget) {
+      return res.status(404).json({ error: "Budget not found" });
+    }
+    
+    budget.departments.push({
+      name,
+      allocatedBudget: parseFloat(allocatedBudget),
+      spent: 0,
+      remaining: parseFloat(allocatedBudget)
+    });
+    
+    await budget.save();
+    res.json({ message: "Department added successfully", budget });
+  } catch (error) {
+    console.error("Error adding department:", error);
+    res.status(500).json({ error: "Failed to add department" });
+  }
+});
+
+app.post("/api/budget/:budgetId/departments/:deptIndex/vendors", async (req, res) => {
+  try {
+    const { name, allocatedBudget, workDescription, contactInfo } = req.body;
+    const budget = await Budget.findById(req.params.budgetId);
+    
+    if (!budget || !budget.departments[req.params.deptIndex]) {
+      return res.status(404).json({ error: "Budget or department not found" });
+    }
+    
+    budget.departments[req.params.deptIndex].vendors.push({
+      name,
+      allocatedBudget: parseFloat(allocatedBudget),
+      spent: 0,
+      remaining: parseFloat(allocatedBudget),
+      workDescription,
+      contactInfo: contactInfo || {}
+    });
+    
+    await budget.save();
+    res.json({ message: "Vendor added successfully", budget });
+  } catch (error) {
+    console.error("Error adding vendor:", error);
+    res.status(500).json({ error: "Failed to add vendor" });
+  }
+});
+
+// Run anomaly detection after transaction creation
+app.post("/api/run-anomaly-detection/:budgetId", async (req, res) => {
+  try {
+    const anomalies = await anomalyService.runAnomalyDetection(req.params.budgetId);
+    res.json({ message: "Anomaly detection completed", anomalies });
+  } catch (error) {
+    console.error("Error running anomaly detection:", error);
+    res.status(500).json({ error: "Failed to run anomaly detection" });
+  }
+});
+
+// BUDGET VISUALIZATION ROUTE
+app.get("/budget/:id/visualization", async (req, res) => {
+  try {
+    const budget = await Budget.findById(req.params.id);
+    if (!budget) {
+      return res.status(404).send("Budget not found");
+    }
+    
+    res.render("budgetVisualization", {
+      title: `Visualization - ${budget.name}`,
+      budget
+    });
+  } catch (error) {
+    console.error("Error loading visualization:", error);
     res.status(500).send("Server Error");
   }
 });
