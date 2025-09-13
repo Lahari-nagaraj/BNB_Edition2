@@ -5,17 +5,17 @@
   <p>Explore approved public budgets with complete transparency</p>
 
   <!-- Filter Form -->
-  <form method="get" class="filter-form">
-    <input type="text" name="q" placeholder="🔍 Search..." value="<%= searchQuery %>">
+  <form method="get" class="filter-form" id="searchForm">
+    <input type="text" name="q" placeholder="🔍 Search by name, department, state, or city..." value="<%= searchQuery %>" id="searchInput">
 
-    <select name="state">
+    <select name="state" id="stateSelect">
       <option value="">📍 All States</option>
       <% states.forEach(state => { %>
         <option value="<%= state %>" <%= userState===state ? 'selected':'' %>><%= state %></option>
       <% }) %>
     </select>
 
-    <select name="city">
+    <select name="city" id="citySelect">
       <option value="">🏙️ All Cities</option>
       <% cities.forEach(city => { %>
         <option value="<%= city %>" <%= userCity===city ? 'selected':'' %>><%= city %></option>
@@ -37,8 +37,31 @@
     </select>
 
     <button type="submit">🔍 Search</button>
+    <button type="button" onclick="clearFilters()">🗑️ Clear</button>
   </form>
 </div>
+
+<!-- Search Results Info -->
+<% if (searchQuery || userState || userCity || department || status) { %>
+  <div class="search-results-info <%= budgets.length === 0 ? 'no-results' : '' %>">
+    <% if (budgets.length > 0) { %>
+      <strong>🔍 Found <%= budgets.length %> budget<%= budgets.length !== 1 ? 's' : '' %></strong>
+      <% if (searchQuery) { %> for "<%= searchQuery %>"<% } %>
+      <% if (userState) { %> in <%= userState %><% } %>
+      <% if (userCity) { %>, <%= userCity %><% } %>
+      <% if (department) { %> from <%= department %> department<% } %>
+      <% if (status) { %> with <%= status %> status<% } %>
+    <% } else { %>
+      <strong>❌ No budgets found</strong>
+      <% if (searchQuery) { %> for "<%= searchQuery %>"<% } %>
+      <% if (userState) { %> in <%= userState %><% } %>
+      <% if (userCity) { %>, <%= userCity %><% } %>
+      <% if (department) { %> from <%= department %> department<% } %>
+      <% if (status) { %> with <%= status %> status<% } %>
+      <br><small>Try adjusting your search criteria or clearing filters to see all budgets.</small>
+    <% } %>
+  </div>
+<% } %>
 
 <!-- Budget Cards -->
 <div class="cards">
@@ -84,5 +107,7 @@
 
 <!-- Include AI Assistant -->
 <%- include('ai') %>
+
+<script src="/js/location.js"></script>
 
 <%- include('partials/footer') %>

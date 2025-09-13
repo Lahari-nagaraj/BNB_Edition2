@@ -12,6 +12,7 @@ const Project = require("./models/Project");
 const Vendor = require("./models/Vendor");
 const Transaction = require("./models/Transaction");
 const AuditLog = require("./models/AuditLog");
+const Editor = require("./models/Editor");
 const aiService = require("./services/aiService");
 const visualizationService = require("./services/visualizationService");
 const { cloudinaryService, upload } = require("./services/cloudinaryService");
@@ -116,70 +117,43 @@ app.get("/", async (req, res) => {
     const userState = req.query.state || "";
     const userCity = req.query.city || "";
 
+    // Build search conditions
+    const searchConditions = [];
+    
     if (searchQuery) {
-      query.$or = [
-        { name: { $regex: searchQuery, $options: "i" } },
-        { department: { $regex: searchQuery, $options: "i" } },
-        { state: { $regex: searchQuery, $options: "i" } },
-        { city: { $regex: searchQuery, $options: "i" } }
-      ];
+      searchConditions.push({
+        $or: [
+          { name: { $regex: searchQuery, $options: "i" } },
+          { department: { $regex: searchQuery, $options: "i" } },
+          { state: { $regex: searchQuery, $options: "i" } },
+          { city: { $regex: searchQuery, $options: "i" } },
+          { description: { $regex: searchQuery, $options: "i" } }
+        ]
+      });
     }
     
     if (department) {
-      if (query.$or) {
-        query.$and = [
-          { $or: query.$or },
-          { department: { $regex: department, $options: "i" } }
-        ];
-        delete query.$or;
-      } else {
-        query.department = { $regex: department, $options: "i" };
-      }
+      searchConditions.push({ department: { $regex: department, $options: "i" } });
     }
     
     if (status) {
-      if (query.$and) {
-        query.$and.push({ status: status });
-      } else if (query.$or) {
-        query.$and = [
-          { $or: query.$or },
-          { status: status }
-        ];
-        delete query.$or;
-      } else {
-        query.status = status;
-      }
+      searchConditions.push({ status: status });
     }
     
     if (userState) {
-      if (query.$and) {
-        query.$and.push({ state: { $regex: userState, $options: "i" } });
-      } else if (query.$or) {
-        query.$and = [
-          { $or: query.$or },
-          { state: { $regex: userState, $options: "i" } }
-        ];
-        delete query.$or;
-      } else {
-        query.state = { $regex: userState, $options: "i" };
-      }
+      searchConditions.push({ state: { $regex: userState, $options: "i" } });
     }
     
     if (userCity) {
-      if (query.$and) {
-        query.$and.push({ city: { $regex: userCity, $options: "i" } });
-      } else if (query.$or) {
-        query.$and = [
-          { $or: query.$or },
-          { city: { $regex: userCity, $options: "i" } }
-        ];
-        delete query.$or;
-      } else {
-        query.city = { $regex: userCity, $options: "i" };
-      }
+      searchConditions.push({ city: { $regex: userCity, $options: "i" } });
     }
 
-    const budgets = await Budget.find(query).populate("creator").limit(20);
+    // Combine all conditions
+    if (searchConditions.length > 0) {
+      query.$and = searchConditions;
+    }
+
+    const budgets = await Budget.find(query).populate("creator").sort({ createdAt: -1 }).limit(20);
     
     // Generate AI summaries for budgets that don't have them
     for (let budget of budgets) {
@@ -295,6 +269,116 @@ app.get("/budget/new", (req, res) => {
     error: null,
     states: indianStates,
   });
+});
+
+// EDITOR MANAGEMENT ROUTES
+app.get("/admin/editors", async (req, res) => {
+  if (!req.session.isAdmin) return res.status(403).send("Admin access required");
+  
+  try {
+    const editors = await Editor.find({ isActive: true })
+      .populate('assignedBudgets')
+      .populate('createdBy', 'name email')
+      .sort({ createdAt: -1 });
+    
+    res.render("editorManagement", {
+      title: "Editor Management",
+      editors
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server Error");
+  }
+});
+
+app.get("/admin/editors/new", (req, res) => {
+  if (!req.session.isAdmin) return res.status(403).send("Admin access required");
+  
+  res.render("createEditor", {
+    title: "Create New Editor",
+    error: null
+  });
+});
+
+app.post("/admin/editors/new", async (req, res) => {
+  if (!req.session.isAdmin) return res.status(403).send("Admin access required");
+  
+  try {
+    const { name, email, password, role, permissions } = req.body;
+    
+    // Check if editor already exists
+    const existingEditor = await Editor.findOne({ email });
+    if (existingEditor) {
+      return res.render("createEditor", {
+        title: "Create New Editor",
+        error: "Editor with this email already exists"
+      });
+    }
+    
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+    
+    // Create editor
+    const editor = new Editor({
+      name,
+      email,
+      password: hashedPassword,
+      role: role || 'editor',
+      permissions: permissions || {
+        canCreateTransactions: true,
+        canUploadReceipts: true,
+        canEditBudgets: false,
+        canApproveTransactions: false
+      },
+      createdBy: req.session.userId
+    });
+    
+    await editor.save();
+    
+    await auditLog("create", "Editor", editor._id, editor.name, req, null, editor.toObject());
+    
+    res.redirect("/admin/editors");
+  } catch (error) {
+    console.error(error);
+    res.render("createEditor", {
+      title: "Create New Editor",
+      error: "Failed to create editor"
+    });
+  }
+});
+
+// ASSIGN EDITOR TO BUDGET
+app.post("/budget/:id/assign-editor", async (req, res) => {
+  if (!req.session.isAdmin) return res.status(403).send("Admin access required");
+  
+  try {
+    const { editorId } = req.body;
+    const budget = await Budget.findById(req.params.id);
+    const editor = await Editor.findById(editorId);
+    
+    if (!budget || !editor) {
+      return res.status(404).json({ error: "Budget or Editor not found" });
+    }
+    
+    // Add editor to budget
+    if (!budget.assignedEditors.includes(editorId)) {
+      budget.assignedEditors.push(editorId);
+      await budget.save();
+    }
+    
+    // Add budget to editor
+    if (!editor.assignedBudgets.includes(req.params.id)) {
+      editor.assignedBudgets.push(req.params.id);
+      await editor.save();
+    }
+    
+    await auditLog("assign", "Budget", budget._id, budget.name, req, null, { editorId, editorName: editor.name });
+    
+    res.json({ success: true, message: "Editor assigned successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to assign editor" });
+  }
 });
 app.post("/budget/new", async (req, res) => {
   if (!req.session.userId) return res.status(403).send("Login required");

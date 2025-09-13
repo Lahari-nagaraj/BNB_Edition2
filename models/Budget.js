@@ -21,6 +21,11 @@ const budgetSchema = new mongoose.Schema(
     type: { type: String, enum: ["Public", "Private"], required: true },
     status: { type: String, enum: ["draft", "pending", "approved", "rejected", "active", "completed"], default: "draft" },
     creator: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    assignedEditors: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Editor'
+    }],
+    // Keep for backward compatibility
     editorEmail: String,
     editorPassword: String,
     expenses: [expenseSchema], // Keep for backward compatibility
