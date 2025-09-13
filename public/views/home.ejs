@@ -1,22 +1,107 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
   <title><%= title %></title>
-  <link rel="stylesheet" href="/css/home.css">
+  <link rel="stylesheet" href="/css/home.css" />
 </head>
 <body>
-  <div class="container">
-    <h1><%= title %></h1>
-    <h2>Users</h2>
-    <ul>
-      <% if (users.length === 0) { %>
-        <li>No users found.</li>
-      <% } else { %>
-        <% users.forEach(user => { %>
-          <li><strong><%= user.name %></strong> - <%= user.email %></li>
-        <% }) %>
-      <% } %>
-    </ul>
-  </div>
+  <header class="navbar">
+    <div class="logo">💰 BNB Fund Management</div>
+    <nav>
+      <ul>
+        <li><a href="/">Dashboard</a></li>
+        <li><a href="#">Budgets</a></li>
+        <li><a href="#">Reports</a></li>
+        <li><a href="#">Profile</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main class="dashboard">
+    <section class="welcome">
+      <h1>Welcome to <%= title %></h1>
+      <p>Building trust through financial transparency.</p>
+    </section>
+
+    <section class="cards">
+      <div class="card highlight">
+        <h2>Total Users</h2>
+        <p><%= users.length %></p>
+      </div>
+      <div class="card highlight">
+        <h2>Budgets Available</h2>
+        <p><%= budgets.length %></p>
+      </div>
+      <div class="card highlight">
+        <h2>Latest Fiscal Year</h2>
+        <p><%= budgets[0] ? budgets[0].fiscalYear : "N/A" %></p>
+      </div>
+    </section>
+
+    <section class="tables">
+      <div class="table-container">
+        <h2>Recent Users</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Created At</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (users.length === 0) { %>
+              <tr><td colspan="3">No users found</td></tr>
+            <% } else { %>
+              <% users.forEach(user => { %>
+                <tr>
+                  <td><%= user.name %></td>
+                  <td><%= user.email %></td>
+                  <td><%= new Date(user.createdAt).toLocaleDateString() %></td>
+                </tr>
+              <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-container">
+        <h2>Recent Budgets</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Department</th>
+              <th>State</th>
+              <th>Amount</th>
+              <th>Year</th>
+              <th>Approved By</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (budgets.length === 0) { %>
+              <tr><td colspan="6">No budgets found</td></tr>
+            <% } else { %>
+              <% budgets.forEach(budget => { %>
+                <tr>
+                  <td><%= budget.name %></td>
+                  <td><%= budget.department %></td>
+                  <td><%= budget.state %></td>
+                  <td>₹<%= budget.amount.toLocaleString() %></td>
+                  <td><%= budget.fiscalYear %></td>
+                  <td><%= budget.approvedBy %></td>
+                </tr>
+              <% }) %>
+            <% } %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>© <%= new Date().getFullYear() %> BNB Fund Management. All rights reserved.</p>
+  </footer>
 </body>
 </html>

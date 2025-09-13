@@ -4,6 +4,8 @@ const path = require("path");
 const mongoose = require("mongoose");
 const session = require("express-session");
 const bcrypt = require("bcrypt");
+const User = require("./public/models/User");
+const Budget = require("./public/models/Budget");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -13,14 +15,6 @@ mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
-
-const userSchema = new mongoose.Schema({
-  name: String,
-  email: { type: String, unique: true },
-  password: String,
-  createdAt: { type: Date, default: Date.now },
-});
-const User = mongoose.model("User", userSchema, "users");
 
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "public", "views"));
@@ -37,9 +31,11 @@ app.use(
 
 app.get("/", async (req, res) => {
   const users = await User.find().limit(5);
+  const budgets = await Budget.find().limit(5);
   res.render("home", {
     title: "BNB Fund Management",
     users,
+    budgets,
   });
 });
 
@@ -52,6 +48,19 @@ app.get("/add-user", async (req, res) => {
   });
   await newUser.save();
   res.send("User added. Go back to /");
+});
+
+app.get("/add-budget", async (req, res) => {
+  const budget = new Budget({
+    name: "Healthcare Grant",
+    department: "Health",
+    state: "Maharashtra",
+    amount: 75000000,
+    fiscalYear: "2024-2025",
+    approvedBy: "Finance Ministry",
+  });
+  await budget.save();
+  res.send("Budget added. Go back to /");
 });
 
 app.listen(PORT, () =>
