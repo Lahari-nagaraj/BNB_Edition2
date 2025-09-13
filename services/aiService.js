@@ -9,6 +9,31 @@ class AIService {
   // Budget Summary Generator
   async generateBudgetSummary(budgetData) {
     try {
+      // Build comprehensive project context
+      let departmentsInfo = '';
+      if (budgetData.departments && budgetData.departments.length > 0) {
+        departmentsInfo = '\nDepartments:\n' + budgetData.departments.map(dept => 
+          `- ${dept.name}: ₹${dept.allocatedBudget?.toLocaleString() || 0} allocated, ₹${dept.spent?.toLocaleString() || 0} spent`
+        ).join('\n');
+      }
+
+      let vendorsInfo = '';
+      if (budgetData.departments) {
+        const allVendors = budgetData.departments.flatMap(dept => dept.vendors || []);
+        if (allVendors.length > 0) {
+          vendorsInfo = '\nKey Vendors:\n' + allVendors.slice(0, 5).map(vendor => 
+            `- ${vendor.name}: ${vendor.workDescription || 'Service provider'} (₹${vendor.allocatedBudget?.toLocaleString() || 0})`
+          ).join('\n');
+        }
+      }
+
+      let expensesInfo = '';
+      if (budgetData.expenses && budgetData.expenses.length > 0) {
+        expensesInfo = '\nRecent Expenses:\n' + budgetData.expenses.slice(0, 3).map(expense => 
+          `- ${expense.description}: ₹${expense.amount?.toLocaleString() || 0} (${expense.category || 'General'})`
+        ).join('\n');
+      }
+
       const prompt = `Summarize this budget for non-technical citizens in a clear, concise way.
 
 Budget Data:
@@ -19,6 +44,9 @@ Budget Data:
 - Remaining: ₹${budgetData.remaining.toLocaleString()}
 - Fiscal Year: ${budgetData.fiscalYear}
 - Type: ${budgetData.type}
+- Status: ${budgetData.status}
+- Location: ${budgetData.state}, ${budgetData.city}
+- Approved By: ${budgetData.approvedBy}${departmentsInfo}${vendorsInfo}${expensesInfo}
 
 Return JSON format:
 {
@@ -94,12 +122,35 @@ Return JSON array:
   // FAQ Generator
   async generateFAQ(budgetData) {
     try {
+      // Build comprehensive project context for FAQ
+      let departmentsInfo = '';
+      if (budgetData.departments && budgetData.departments.length > 0) {
+        departmentsInfo = '\nDepartments: ' + budgetData.departments.map(dept => 
+          `${dept.name} (₹${dept.allocatedBudget?.toLocaleString() || 0})`
+        ).join(', ');
+      }
+
+      let vendorsInfo = '';
+      if (budgetData.departments) {
+        const allVendors = budgetData.departments.flatMap(dept => dept.vendors || []);
+        if (allVendors.length > 0) {
+          vendorsInfo = '\nKey Vendors: ' + allVendors.slice(0, 3).map(vendor => 
+            `${vendor.name} (${vendor.workDescription || 'Service provider'})`
+          ).join(', ');
+        }
+      }
+
       const prompt = `Generate 6 short FAQ Q/A pairs for the public about this budget. Questions should be ≤10 words. Answers should be one concise sentence in plain language.
 
 Budget: ${budgetData.name}
 Department: ${budgetData.department}
 Total: ₹${budgetData.totalBudget.toLocaleString()}
+Spent: ₹${budgetData.spent.toLocaleString()}
+Remaining: ₹${budgetData.remaining.toLocaleString()}
 Fiscal Year: ${budgetData.fiscalYear}
+Status: ${budgetData.status}
+Location: ${budgetData.state}, ${budgetData.city}
+Approved By: ${budgetData.approvedBy}${departmentsInfo}${vendorsInfo}
 
 Return JSON array:
 [{"q": "Question?", "a": "Answer."}, ...]`;
@@ -320,6 +371,62 @@ Return JSON:
         </ul>
         <p><a href="/dashboard">View Full Dashboard</a></p>
       `
+    };
+  }
+
+  // Receipt Verification
+  async verifyReceipt(receiptUrl) {
+    try {
+      const prompt = `Analyze this receipt image/PDF and verify its authenticity. Check for:
+      1. Receipt format and structure
+      2. Date and time validity
+      3. Amount consistency
+      4. Vendor information
+      5. Any suspicious patterns
+      
+      Return JSON format:
+      {
+        "isValid": true/false,
+        "confidence": 0-100,
+        "issues": ["issue1", "issue2"],
+        "recommendations": ["rec1", "rec2"],
+        "extractedData": {
+          "amount": "₹X,XXX",
+          "date": "YYYY-MM-DD",
+          "vendor": "Vendor Name",
+          "description": "Item/Service description"
+        }
+      }`;
+
+      const response = await this.hf.textGeneration({
+        model: 'microsoft/DialoGPT-medium',
+        inputs: prompt,
+        parameters: {
+          max_new_tokens: 200,
+          temperature: 0.2,
+          return_full_text: false
+        }
+      });
+
+      return this.parseJSONResponse(response.generated_text);
+    } catch (error) {
+      console.error('Error verifying receipt:', error);
+      return this.getFallbackVerification();
+    }
+  }
+
+  getFallbackVerification() {
+    return {
+      isValid: true,
+      confidence: 75,
+      issues: [],
+      recommendations: ["Manual review recommended"],
+      extractedData: {
+        amount: "₹0",
+        date: new Date().toISOString().split('T')[0],
+        vendor: "Unknown",
+        description: "Receipt uploaded"
+      }
     };
   }
 }

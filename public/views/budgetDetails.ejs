@@ -602,12 +602,19 @@ function useOCRData() {
   }
 }
 
+let isSubmitting = false;
+
 async function handleSubmit(event) {
   event.preventDefault();
+  
+  if (isSubmitting) {
+    return; // Prevent double submission
+  }
   
   const formData = new FormData(event.target);
   const submitBtn = document.getElementById('submitBtn');
   
+  isSubmitting = true;
   submitBtn.disabled = true;
   submitBtn.textContent = 'Adding Expense...';
   
@@ -631,6 +638,7 @@ async function handleSubmit(event) {
     console.error('Error adding expense:', error);
     alert('Error adding expense: ' + error.message);
   } finally {
+    isSubmitting = false;
     submitBtn.disabled = false;
     submitBtn.textContent = 'Add Expense';
   }

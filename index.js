@@ -20,7 +20,6 @@ const visualizationService = require("./services/visualizationService");
 const { cloudinaryService, upload } = require("./services/cloudinaryService");
 const ocrService = require("./services/ocrService");
 const anomalyService = require("./services/anomalyService");
-const multer = require("multer");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
