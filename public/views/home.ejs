@@ -1,107 +1,76 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
   <title><%= title %></title>
-  <link rel="stylesheet" href="/css/home.css" />
+  <link rel="stylesheet" href="/css/home.css">
 </head>
 <body>
-  <header class="navbar">
-    <div class="logo">💰 BNB Fund Management</div>
-    <nav>
-      <ul>
-        <li><a href="/">Dashboard</a></li>
-        <li><a href="#">Budgets</a></li>
-        <li><a href="#">Reports</a></li>
-        <li><a href="#">Profile</a></li>
-      </ul>
-    </nav>
-  </header>
+<header>
+  <h1>BNB Fund Management</h1>
+  <nav>
+    <% if (session && session.userId) { %>
+      <span>Welcome, <%= users.find(u => u._id.toString() === session.userId)?.name || "User" %></span>
+      <a href="/logout">Logout</a>
+    <% } else { %>
+      <a href="/login">Login</a> |
+      <a href="/register">Sign Up</a>
+    <% } %>
+    <a href="/budget/new">Add Budget</a>
+  </nav>
+</header>
 
-  <main class="dashboard">
-    <section class="welcome">
-      <h1>Welcome to <%= title %></h1>
-      <p>Building trust through financial transparency.</p>
-    </section>
+<main>
+  <section class="hero">
+    <h2>Track Public Budgets of Your State</h2>
+    <p>Trust and transparency in institutional funds, from government to NGOs, is just a click away.</p>
+  </section>
 
-    <section class="cards">
-      <div class="card highlight">
-        <h2>Total Users</h2>
-        <p><%= users.length %></p>
-      </div>
-      <div class="card highlight">
-        <h2>Budgets Available</h2>
-        <p><%= budgets.length %></p>
-      </div>
-      <div class="card highlight">
-        <h2>Latest Fiscal Year</h2>
-        <p><%= budgets[0] ? budgets[0].fiscalYear : "N/A" %></p>
-      </div>
-    </section>
-
-    <section class="tables">
-      <div class="table-container">
-        <h2>Recent Users</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Created At</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% if (users.length === 0) { %>
-              <tr><td colspan="3">No users found</td></tr>
-            <% } else { %>
-              <% users.forEach(user => { %>
-                <tr>
-                  <td><%= user.name %></td>
-                  <td><%= user.email %></td>
-                  <td><%= new Date(user.createdAt).toLocaleDateString() %></td>
-                </tr>
+  <section class="dashboard">
+    <% if (!userState) { %>
+      <p class="info">Detecting your location to show your state budgets...</p>
+    <% } else { %>
+      <h2>Public Budgets in <%= userState %></h2>
+      <div class="cards">
+        <% budgets.forEach(budget => { %>
+          <div class="card">
+            <h3><%= budget.name %></h3>
+            <p><strong>Department:</strong> <%= budget.department %></p>
+            <p><strong>State:</strong> <%= budget.state %></p>
+            <p><strong>Country:</strong> <%= budget.country %></p>
+            <p><strong>Total Budget:</strong> ₹<%= budget.totalBudget.toLocaleString() %></p>
+            <p><strong>Fiscal Year:</strong> <%= budget.fiscalYear %></p>
+            <p><strong>Approved By:</strong> <%= budget.approvedBy %></p>
+            <p><strong>Type:</strong> <%= budget.type %></p>
+            <h4>Expenses:</h4>
+            <ul>
+              <% budget.expenses.forEach(exp => { %>
+                <li><%= exp.description %> - ₹<%= exp.amount.toLocaleString() %> to <%= exp.allocatedTo %></li>
               <% }) %>
-            <% } %>
-          </tbody>
-        </table>
+            </ul>
+          </div>
+        <% }) %>
       </div>
+    <% } %>
+  </section>
+</main>
 
-      <div class="table-container">
-        <h2>Recent Budgets</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Department</th>
-              <th>State</th>
-              <th>Amount</th>
-              <th>Year</th>
-              <th>Approved By</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% if (budgets.length === 0) { %>
-              <tr><td colspan="6">No budgets found</td></tr>
-            <% } else { %>
-              <% budgets.forEach(budget => { %>
-                <tr>
-                  <td><%= budget.name %></td>
-                  <td><%= budget.department %></td>
-                  <td><%= budget.state %></td>
-                  <td>₹<%= budget.amount.toLocaleString() %></td>
-                  <td><%= budget.fiscalYear %></td>
-                  <td><%= budget.approvedBy %></td>
-                </tr>
-              <% }) %>
-            <% } %>
-          </tbody>
-        </table>
-      </div>
-    </section>
-  </main>
+<footer>
+  <p>&copy; 2025 BNB Fund Management. All rights reserved.</p>
+</footer>
 
-  <footer class="footer">
-    <p>© <%= new Date().getFullYear() %> BNB Fund Management. All rights reserved.</p>
-  </footer>
+<script>
+if (navigator.geolocation) {
+  navigator.geolocation.getCurrentPosition(async (position) => {
+    const lat = position.coords.latitude;
+    const lon = position.coords.longitude;
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
+    const data = await res.json();
+    const state = data.address.state || data.address.county || "";
+    if (state && !window.location.search.includes("state")) {
+      window.location.href = "/?state=" + encodeURIComponent(state);
+    }
+  });
+}
+</script>
 </body>
 </html>

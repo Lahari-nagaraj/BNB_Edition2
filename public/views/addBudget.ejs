@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/css/home.css">
+</head>
+<body>
+  <div class="login-container">
+    <h1>Add Budget</h1>
+    <form method="POST" action="/budget/new">
+      <input type="text" name="name" placeholder="Budget Name" required>
+      <input type="text" name="department" placeholder="Department" required>
+      <input type="text" name="state" placeholder="State" required>
+      <input type="text" name="country" placeholder="Country" value="India" required>
+      <input type="number" name="totalBudget" placeholder="Total Budget" required>
+      <input type="text" name="fiscalYear" placeholder="Fiscal Year" required>
+      <input type="text" name="approvedBy" placeholder="Approved By" required>
+      <select name="type">
+        <option value="Public">Public</option>
+        <option value="Private">Private</option>
+      </select>
+      <textarea name="expenses" placeholder='Expenses JSON: [{"description":"X","amount":100,"allocatedTo":"Y"}]'></textarea>
+      <button type="submit">Add Budget</button>
+    </form>
+  </div>
+</body>
+</html>
