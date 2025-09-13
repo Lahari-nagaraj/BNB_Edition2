@@ -16,6 +16,7 @@ const Editor = require("./models/Editor");
 const aiService = require("./services/aiService");
 const visualizationService = require("./services/visualizationService");
 const { cloudinaryService, upload } = require("./services/cloudinaryService");
+const ocrService = require("./services/ocrService");
 const multer = require("multer");
 
 const app = express();
@@ -110,7 +111,7 @@ app.use((req, res, next) => {
 
 app.get("/", async (req, res) => {
   try {
-    const query = { type: "Public", status: { $in: ["approved", "active"] } };
+    const query = { type: "Public", status: { $in: ["approved", "active", "draft"] } };
     const searchQuery = req.query.q || "";
     const department = req.query.department || "";
     const status = req.query.status || "";
@@ -172,7 +173,7 @@ app.get("/", async (req, res) => {
     
     const departments = await Budget.distinct("department", { type: "Public" });
     const statuses = await Budget.distinct("status", { type: "Public" });
-    const states = await Budget.distinct("state", { type: "Public" });
+    const states = indianStates; // Use complete state list instead of just from budgets
     const cities = await Budget.distinct("city", { type: "Public" });
     
     res.render("home", {
@@ -410,8 +411,23 @@ app.post("/budget/new", async (req, res) => {
       error: "All fields required",
       states: indianStates,
     });
+  
+  // Generate editor credentials
   const editorEmail = `editor_${Date.now()}@bnb.com`;
-  const editorPassword = crypto.randomBytes(4).toString("hex");
+  const editorPassword = crypto.randomBytes(6).toString("hex");
+  
+  // Create editor user in User model
+  const hashedPassword = await bcrypt.hash(editorPassword, 10);
+  const editorUser = new User({
+    name: `Editor for ${name}`,
+    email: editorEmail,
+    password: hashedPassword,
+    role: "editor",
+    assignedBudgets: []
+  });
+  await editorUser.save();
+  
+  // Create budget
   const budget = new Budget({
     name,
     department,
@@ -425,10 +441,15 @@ app.post("/budget/new", async (req, res) => {
     creator: req.session.userId,
     editorEmail,
     editorPassword,
+    assignedEditors: [editorUser._id],
     expenses: [],
     status: "draft"
   });
   await budget.save();
+  
+  // Update editor user with assigned budget
+  editorUser.assignedBudgets.push(budget._id);
+  await editorUser.save();
   
   if (vendorNames && vendorEmails) {
     const names = vendorNames.split(',').map(name => name.trim());
@@ -521,10 +542,36 @@ app.get("/dashboard", async (req, res) => {
 // ADMIN DASHBOARD
 app.get("/admin/dashboard", async (req, res) => {
   if (!req.session.isAdmin) return res.status(403).send("Unauthorized");
-  const budgets = await Budget.find({ creator: req.session.userId }).populate(
-    "creator"
-  );
-  res.render("adminDashboard", { title: "Admin Dashboard", budgets });
+  
+  try {
+    const budgets = await Budget.find({ creator: req.session.userId })
+      .populate("creator")
+      .populate("assignedEditors")
+      .sort({ createdAt: -1 });
+    
+    // Get editor statistics
+    const editorStats = await User.aggregate([
+      { $match: { role: "editor" } },
+      {
+        $group: {
+          _id: null,
+          totalEditors: { $sum: 1 },
+          activeEditors: { $sum: { $cond: [{ $ne: ["$assignedBudgets", []] }, 1, 0] } }
+        }
+      }
+    ]);
+    
+    const stats = editorStats[0] || { totalEditors: 0, activeEditors: 0 };
+    
+    res.render("adminDashboard", { 
+      title: "Admin Dashboard", 
+      budgets,
+      stats
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server Error");
+  }
 });
 
 // DEPARTMENT MANAGEMENT
@@ -878,6 +925,63 @@ app.get("/editor/transaction/new", async (req, res) => {
   }
 });
 
+// EDITOR BUDGET TRANSACTIONS VIEW
+app.get("/editor/budget/:id/transactions", async (req, res) => {
+  if (!req.session.userId || req.session.userRole !== 'editor') {
+    return res.redirect("/login");
+  }
+  
+  try {
+    const user = await User.findById(req.session.userId);
+    const budget = await Budget.findById(req.params.id);
+    
+    if (!budget || !user.assignedBudgets.includes(req.params.id)) {
+      return res.status(403).send("Unauthorized access to this budget");
+    }
+    
+    // Get transactions for this budget
+    const transactions = await Transaction.find({ budgetId: req.params.id })
+      .populate('createdBy', 'name')
+      .sort({ createdAt: -1 });
+    
+    res.render("editorBudgetTransactions", {
+      title: `Transactions - ${budget.name}`,
+      budget,
+      transactions,
+      user
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server Error");
+  }
+});
+
+// EDITOR PENDING TRANSACTIONS
+app.get("/editor/transactions/pending", async (req, res) => {
+  if (!req.session.userId || req.session.userRole !== 'editor') {
+    return res.redirect("/login");
+  }
+  
+  try {
+    const user = await User.findById(req.session.userId);
+    const pendingTransactions = await Transaction.find({ 
+      createdBy: req.session.userId,
+      status: 'pending'
+    })
+    .populate('budgetId', 'name department')
+    .sort({ createdAt: -1 });
+    
+    res.render("editorPendingTransactions", {
+      title: "Pending Transactions",
+      transactions: pendingTransactions,
+      user
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server Error");
+  }
+});
+
 app.post("/editor/transaction/new", upload.single('receipt'), async (req, res) => {
   if (!req.session.userId || req.session.userRole !== 'editor') {
     return res.redirect("/login");
@@ -947,13 +1051,26 @@ app.post("/editor/transaction/new", upload.single('receipt'), async (req, res) =
   }
 });
 
-// RECEIPT UPLOAD
+// RECEIPT UPLOAD AND OCR PROCESSING
 app.get("/editor/receipts/upload", async (req, res) => {
   if (!req.session.userId || req.session.userRole !== 'editor') {
     return res.redirect("/login");
   }
   
-  res.render("receiptUpload", { title: "Upload Receipt" });
+  try {
+    const user = await User.findById(req.session.userId);
+    const assignedBudgets = await Budget.find({ 
+      _id: { $in: user.assignedBudgets } 
+    });
+    
+    res.render("receiptUpload", { 
+      title: "Upload Receipt",
+      assignedBudgets
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server Error");
+  }
 });
 
 app.post("/editor/receipts/upload", upload.single('receipt'), async (req, res) => {
@@ -963,27 +1080,161 @@ app.post("/editor/receipts/upload", upload.single('receipt'), async (req, res) =
   
   try {
     if (!req.file) {
-      return res.status(400).send("No file uploaded");
+      return res.status(400).json({ success: false, error: "No file uploaded" });
     }
     
+    // Upload to Cloudinary
     const uploadResult = await cloudinaryService.uploadReceipt(req.file, Date.now());
     
-    if (uploadResult.success) {
-      // AI Receipt Verification
-      const verification = await aiService.verifyReceipt(uploadResult.url);
-      
-      res.json({
-        success: true,
-        url: uploadResult.url,
-        publicId: uploadResult.publicId,
-        verification: verification
-      });
-    } else {
-      res.status(500).json({ success: false, error: uploadResult.error });
+    if (!uploadResult.success) {
+      return res.status(500).json({ success: false, error: uploadResult.error });
     }
+    
+    // Process with OCR
+    const ocrResult = await ocrService.processReceiptFromUrl(uploadResult.url);
+    
+    // AI Receipt Verification
+    const verification = await aiService.verifyReceipt(uploadResult.url);
+    
+    res.json({
+      success: true,
+      url: uploadResult.url,
+      publicId: uploadResult.publicId,
+      verification: verification,
+      ocrData: ocrResult.success ? ocrResult.data : null,
+      ocrError: ocrResult.success ? null : ocrResult.error
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// OCR PROCESSING API
+app.post("/api/ocr/process", upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: "No file uploaded" });
+    }
+    
+    const ocrResult = await ocrService.processReceipt(req.file.path);
+    
+    res.json(ocrResult);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// OCR PROCESSING FROM URL
+app.post("/api/ocr/process-url", async (req, res) => {
+  try {
+    const { imageUrl } = req.body;
+    
+    if (!imageUrl) {
+      return res.status(400).json({ success: false, error: "Image URL required" });
+    }
+    
+    const ocrResult = await ocrService.processReceiptFromUrl(imageUrl);
+    
+    res.json(ocrResult);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// SIMPLE CLOUDINARY UPLOAD ROUTE
+app.post('/upload', upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+    
+    if (!process.env.CLOUD_KEY_NAME) {
+      return res.status(500).json({ 
+        error: 'Cloudinary not configured. Please add CLOUD_KEY_NAME, COUD_API_KEY, and CLOUD_API_SECRET to your .env file' 
+      });
+    }
+    
+    const result = await cloudinary.uploader.upload(req.file.path);
+    res.json({ url: result.secure_url });
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({ error: 'Upload failed: ' + error.message });
+  }
+});
+
+// ADD EXPENSE WITH RECEIPT
+app.post("/budget/:id/add-expense", upload.single('receipt'), async (req, res) => {
+  if (!req.session.userId) return res.status(403).json({ error: "Login required" });
+  
+  try {
+    const budget = await Budget.findById(req.params.id);
+    if (!budget) return res.status(404).json({ error: "Budget not found" });
+    
+    // Check if user has permission to add expenses
+    const user = await User.findById(req.session.userId);
+    const hasPermission = req.session.isAdmin || 
+                         user.role === 'editor' || 
+                         budget.creator.toString() === req.session.userId ||
+                         budget.assignedEditors.includes(req.session.userId);
+    
+    if (!hasPermission) {
+      return res.status(403).json({ error: "No permission to add expenses to this budget" });
+    }
+    
+    const { description, amount, category, vendor, notes } = req.body;
+    
+    if (!description || !amount) {
+      return res.status(400).json({ error: "Description and amount are required" });
+    }
+    
+    let receiptData = {};
+    if (req.file) {
+      // Upload receipt to Cloudinary
+      const uploadResult = await cloudinaryService.uploadReceipt(req.file, Date.now());
+      if (uploadResult.success) {
+        receiptData = {
+          url: uploadResult.url,
+          publicId: uploadResult.publicId,
+          filename: req.file.originalname,
+          mimetype: req.file.mimetype,
+          size: req.file.size,
+          uploadedAt: new Date()
+        };
+      }
+    }
+    
+    // Create expense object
+    const expense = {
+      description,
+      amount: parseFloat(amount),
+      category: category || 'other',
+      vendor: vendor || '',
+      notes: notes || '',
+      receipt: receiptData,
+      addedBy: req.session.userId,
+      addedAt: new Date()
+    };
+    
+    // Add expense to budget
+    budget.expenses.push(expense);
+    budget.spent += expense.amount;
+    budget.remaining = budget.totalBudget - budget.spent;
+    
+    await budget.save();
+    
+    await auditLog("add_expense", "Budget", budget._id, budget.name, req, null, expense);
+    
+    res.json({ 
+      success: true, 
+      message: "Expense added successfully",
+      expense: expense
+    });
+  } catch (error) {
+    console.error('Error adding expense:', error);
+    res.status(500).json({ error: "Failed to add expense" });
   }
 });
 
@@ -1002,7 +1253,7 @@ app.get("/add-test-data", async (req, res) => {
         approvedBy: "Ministry of Education",
         type: "Public",
         status: "approved",
-        creator: req.session.userId || "64f8b1234567890abcdef123",
+        creator: req.session.userId || new mongoose.Types.ObjectId(),
         description: "Development of new schools and educational facilities"
       },
       {
@@ -1016,7 +1267,7 @@ app.get("/add-test-data", async (req, res) => {
         approvedBy: "Health Department",
         type: "Public",
         status: "approved",
-        creator: req.session.userId || "64f8b1234567890abcdef123",
+        creator: req.session.userId || new mongoose.Types.ObjectId(),
         description: "Modernization of healthcare facilities and equipment"
       },
       {
@@ -1030,7 +1281,7 @@ app.get("/add-test-data", async (req, res) => {
         approvedBy: "Transport Ministry",
         type: "Public",
         status: "approved",
-        creator: req.session.userId || "64f8b1234567890abcdef123",
+        creator: req.session.userId || new mongoose.Types.ObjectId(),
         description: "Construction and maintenance of road networks"
       }
     ];

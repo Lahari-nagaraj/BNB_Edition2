@@ -1,14 +1,209 @@
 <%- include('partials/header') %>
-<h2>My Projects</h2>
-<div class="cards">
-<% budgets.forEach(budget=>{ %>
-<div class="card">
-<h3><%= budget.name %></h3>
-<p>Department: <%= budget.department %></p>
-<p>Total Budget: <%= budget.totalBudget %></p>
-<a href="/budget/<%= budget._id %>"><button>View</button></a>
-<a href="/budget/<%= budget._id %>/edit"><button>Edit</button></a>
+
+<div class="dashboard-container">
+  <div class="dashboard-section">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+      <h3>🏛️ Admin Dashboard</h3>
+      <a href="/budget/new">
+        <button>➕ Create New Project</button>
+      </a>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-number"><%= budgets.length %></div>
+        <div>Total Projects</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number"><%= stats.totalEditors %></div>
+        <div>Total Editors</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number"><%= stats.activeEditors %></div>
+        <div>Active Editors</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number">₹<%= budgets.reduce((sum, b) => sum + b.totalBudget, 0).toLocaleString() %></div>
+        <div>Total Budget</div>
+      </div>
+    </div>
+
+    <h3>📋 My Projects</h3>
+    <div class="cards">
+      <% budgets.forEach(budget=>{ %>
+      <div class="card">
+        <div class="card-header">
+          <h3><%= budget.name %></h3>
+          <span class="status-badge status-<%= budget.status %>"><%= budget.status %></span>
+        </div>
+
+        <div class="budget-info">
+          <p><strong>🏢 Department:</strong> <%= budget.department %></p>
+          <p><strong>📍 State:</strong> <%= budget.state %></p>
+          <p><strong>🏙️ City:</strong> <%= budget.city || 'N/A' %></p>
+          <p><strong>💰 Total Budget:</strong> ₹<%= budget.totalBudget.toLocaleString() %></p>
+          <p><strong>📅 Fiscal Year:</strong> <%= budget.fiscalYear %></p>
+          <p><strong>✅ Approved By:</strong> <%= budget.approvedBy %></p>
+          <p><strong>🏷️ Type:</strong> <%= budget.type %></p>
+        </div>
+
+        <% if (budget.editorEmail && budget.editorPassword) { %>
+        <div class="editor-credentials">
+          <h4>👤 Editor Credentials</h4>
+          <div class="credential-item">
+            <div class="credential-row">
+              <strong>📧 Email:</strong> 
+              <span class="credential-value" id="email-<%= budget._id %>"><%= budget.editorEmail %></span>
+              <button onclick="copyToClipboard('email-<%= budget._id %>')" class="copy-btn">📋</button>
+            </div>
+            <div class="credential-row">
+              <strong>🔑 Password:</strong> 
+              <span class="credential-value" id="pass-<%= budget._id %>"><%= budget.editorPassword %></span>
+              <button onclick="copyToClipboard('pass-<%= budget._id %>')" class="copy-btn">📋</button>
+            </div>
+            <div class="credential-info">
+              <small>💡 Share these credentials with the editor to allow them to login and manage this budget</small>
+            </div>
+          </div>
+        </div>
+        <% } %>
+
+        <div class="card-actions">
+          <a href="/budget/<%= budget._id %>"><button>👁️ View</button></a>
+          <a href="/budget/<%= budget._id %>/edit"><button>✏️ Edit</button></a>
+          <a href="/budget/<%= budget._id %>/departments"><button>🏢 Departments</button></a>
+          <% if (budget.type === 'Public') { %>
+            <a href="/budget/<%= budget._id %>/enhanced"><button class="btn-ai">🤖 AI Enhanced</button></a>
+          <% } %>
+        </div>
+      </div>
+      <% }) %>
+    </div>
+
+    <% if (budgets.length === 0) { %>
+    <div class="empty-state">
+      <h3>No projects found</h3>
+      <p>Create your first project to start managing budgets.</p>
+      <a href="/budget/new">
+        <button>Create Project</button>
+      </a>
+    </div>
+    <% } %>
+  </div>
 </div>
-<% }) %>
-</div>
+
+<style>
+.editor-credentials {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: rgba(37, 99, 235, 0.05);
+  border-radius: var(--border-radius);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+}
+
+.editor-credentials h4 {
+  margin-bottom: 1rem;
+  color: var(--primary-color);
+  font-size: 1.1rem;
+}
+
+.credential-item {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+
+.credential-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.credential-row:last-child {
+  margin-bottom: 0;
+}
+
+.credential-value {
+  flex: 1;
+  font-family: 'Courier New', monospace;
+  background: rgba(241, 245, 249, 0.5);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.copy-btn {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: var(--transition);
+}
+
+.copy-btn:hover {
+  background: var(--primary-dark);
+  transform: scale(1.05);
+}
+
+.credential-info {
+  margin-top: 0.75rem;
+  padding: 0.5rem;
+  background: rgba(16, 185, 129, 0.1);
+  border-radius: 6px;
+  border-left: 3px solid var(--success-color);
+}
+
+.credential-info small {
+  color: var(--success-color);
+  font-weight: 500;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: var(--card-gradient);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-light);
+}
+
+.empty-state h3 {
+  color: var(--secondary-color);
+  margin-bottom: 1rem;
+}
+
+.empty-state p {
+  color: var(--secondary-color);
+  margin-bottom: 2rem;
+}
+</style>
+
+<script>
+function copyToClipboard(elementId) {
+  const element = document.getElementById(elementId);
+  const text = element.textContent;
+  
+  navigator.clipboard.writeText(text).then(() => {
+    // Show success feedback
+    const btn = element.nextElementSibling;
+    const originalText = btn.textContent;
+    btn.textContent = '✅';
+    btn.style.background = 'var(--success-color)';
+    
+    setTimeout(() => {
+      btn.textContent = originalText;
+      btn.style.background = 'var(--primary-color)';
+    }, 2000);
+  }).catch(err => {
+    console.error('Failed to copy: ', err);
+    alert('Failed to copy to clipboard');
+  });
+}
+</script>
+
 <%- include('partials/footer') %>

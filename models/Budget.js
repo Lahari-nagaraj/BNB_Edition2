@@ -1,9 +1,22 @@
 const mongoose = require("mongoose");
 
 const expenseSchema = new mongoose.Schema({
-  description: String,
-  amount: Number,
-  allocatedTo: String,
+  description: { type: String, required: true },
+  amount: { type: Number, required: true },
+  allocatedTo: String, // Keep for backward compatibility
+  category: { type: String, default: 'other' },
+  vendor: { type: String, default: '' },
+  notes: { type: String, default: '' },
+  receipt: {
+    url: String,
+    publicId: String,
+    filename: String,
+    mimetype: String,
+    size: Number,
+    uploadedAt: Date
+  },
+  addedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  addedAt: { type: Date, default: Date.now }
 });
 
 const budgetSchema = new mongoose.Schema(

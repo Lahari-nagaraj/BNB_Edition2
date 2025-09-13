@@ -2,11 +2,16 @@ const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 
 // Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUD_KEY_NAME,
-  api_key: process.env.CLOUD_API_KEY,
-  api_secret: process.env.CLOUD_API_SECRET
-});
+if (process.env.CLOUD_KEY_NAME && process.env.COUD_API_KEY && process.env.CLOUD_API_SECRET) {
+  cloudinary.config({
+    cloud_name: process.env.CLOUD_KEY_NAME.toLowerCase(),
+    api_key: process.env.COUD_API_KEY,
+    api_secret: process.env.CLOUD_API_SECRET
+  });
+  console.log('Cloudinary configured successfully');
+} else {
+  console.warn('Cloudinary credentials not found in environment variables');
+}
 
 class CloudinaryService {
   constructor() {
@@ -16,6 +21,14 @@ class CloudinaryService {
   // Upload receipt image/PDF
   async uploadReceipt(file, transactionId) {
     try {
+      // Check if Cloudinary is configured
+      if (!process.env.CLOUD_KEY_NAME) {
+        return {
+          success: false,
+          error: 'Cloudinary not configured. Please add CLOUD_KEY_NAME, COUD_API_KEY, and CLOUD_API_SECRET to your .env file'
+        };
+      }
+
       const result = await cloudinary.uploader.upload(file.path, {
         folder: 'bnb-receipts',
         public_id: `receipt_${transactionId}_${Date.now()}`,
@@ -162,11 +175,12 @@ const upload = multer({
     fileSize: 10 * 1024 * 1024 // 10MB limit
   },
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only images and PDFs are allowed.'), false);
+      console.log('File type rejected:', file.mimetype);
+      cb(new Error('Invalid file type. Only images (JPG, PNG, GIF, WebP) and PDFs are allowed.'), false);
     }
   }
 });
