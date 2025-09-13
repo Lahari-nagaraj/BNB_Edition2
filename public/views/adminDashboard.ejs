@@ -84,6 +84,18 @@
       </div>
     </div>
 
+    <!-- Admin Transaction Management Section -->
+    <div class="admin-transaction-section">
+      <h3>💼 Admin Transaction Management</h3>
+      <div class="admin-actions">
+        <button onclick="showAddTransactionModal()" class="btn-primary">➕ Add Transaction</button>
+        <button onclick="showBulkUploadModal()" class="btn-secondary">📤 Bulk Upload</button>
+        <a href="/admin/transactions/pending">
+          <button class="btn-warning">⏳ Review Pending</button>
+        </a>
+      </div>
+    </div>
+
     <h3>📋 My Projects</h3>
     <div class="cards">
       <% budgets.forEach(budget=>{ %>
@@ -452,16 +464,20 @@ document.head.appendChild(style);
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 .modal-content {
   background: white;
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-  max-width: 500px;
-  width: 90%;
-  max-height: 80vh;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
   overflow-y: auto;
+  margin: auto;
+  position: relative;
 }
 
 .modal-header {
@@ -616,6 +632,203 @@ window.onclick = function(event) {
   if (event.target === modal) {
     closeGenerateEditorsModal();
   }
+}
+
+// Transaction Management Functions
+function showAddTransactionModal() {
+  // Create modal if it doesn't exist
+  if (!document.getElementById('addTransactionModal')) {
+    createAddTransactionModal();
+  }
+  document.getElementById('addTransactionModal').style.display = 'block';
+}
+
+function createAddTransactionModal() {
+  const modal = document.createElement('div');
+  modal.id = 'addTransactionModal';
+  modal.className = 'modal';
+  modal.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>➕ Add New Transaction</h3>
+        <span class="close" onclick="closeAddTransactionModal()">&times;</span>
+      </div>
+      <form id="adminTransactionForm" enctype="multipart/form-data">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="adminBudgetId">Select Budget *</label>
+            <select id="adminBudgetId" name="budgetId" required>
+              <option value="">Choose a budget...</option>
+              <% budgets.forEach(budget => { %>
+                <option value="<%= budget._id %>"><%= budget.name %> - <%= budget.department %></option>
+              <% }) %>
+            </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="adminCategory">Category</label>
+            <select id="adminCategory" name="category">
+              <option value="">Select category...</option>
+              <option value="office_supplies">Office Supplies</option>
+              <option value="travel">Travel</option>
+              <option value="equipment">Equipment</option>
+              <option value="utilities">Utilities</option>
+              <option value="maintenance">Maintenance</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="adminDescription">Description *</label>
+            <input type="text" id="adminDescription" name="description" required placeholder="Enter transaction description">
+          </div>
+          
+          <div class="form-group">
+            <label for="adminAmount">Amount (₹) *</label>
+            <input type="number" id="adminAmount" name="amount" step="0.01" required placeholder="0.00">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="adminVendor">Vendor/Supplier</label>
+            <input type="text" id="adminVendor" name="vendor" placeholder="Enter vendor name">
+          </div>
+          
+          <div class="form-group">
+            <label for="adminDate">Date</label>
+            <input type="date" id="adminDate" name="date">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="adminReceipt">Receipt Upload</label>
+          <div class="file-upload-area" id="adminFileUploadArea">
+            <div class="upload-icon">📁</div>
+            <p>Drop receipt here or click to browse</p>
+            <p class="file-types">Supports JPG, PNG, PDF files up to 10MB</p>
+            <input type="file" id="adminReceipt" name="receipt" accept="image/*,.pdf" style="display: none;">
+            <button type="button" onclick="document.getElementById('adminReceipt').click()">Choose File</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="adminNotes">Notes</label>
+          <textarea id="adminNotes" name="notes" rows="3" placeholder="Additional notes..."></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" id="adminSubmitBtn">Create Transaction</button>
+          <button type="button" onclick="closeAddTransactionModal()" class="btn-secondary">Cancel</button>
+        </div>
+      </form>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  // Add event listeners
+  document.getElementById('adminTransactionForm').addEventListener('submit', handleAdminTransactionSubmit);
+  document.getElementById('adminReceipt').addEventListener('change', handleAdminFileSelect);
+  document.getElementById('adminFileUploadArea').addEventListener('click', () => document.getElementById('adminReceipt').click());
+}
+
+function closeAddTransactionModal() {
+  const modal = document.getElementById('addTransactionModal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+function handleAdminFileSelect(event) {
+  const file = event.target.files[0];
+  if (file) {
+    const uploadArea = document.getElementById('adminFileUploadArea');
+    uploadArea.innerHTML = `
+      <div class="file-preview">
+        <div class="file-info">
+          <h4>${file.name}</h4>
+          <p>${formatFileSize(file.size)}</p>
+          <button type="button" onclick="resetAdminFileUpload()">Remove</button>
+        </div>
+      </div>
+    `;
+  }
+}
+
+function resetAdminFileUpload() {
+  const uploadArea = document.getElementById('adminFileUploadArea');
+  uploadArea.innerHTML = `
+    <div class="upload-icon">📁</div>
+    <p>Drop receipt here or click to browse</p>
+    <p class="file-types">Supports JPG, PNG, PDF files up to 10MB</p>
+    <input type="file" id="adminReceipt" name="receipt" accept="image/*,.pdf" style="display: none;">
+    <button type="button" onclick="document.getElementById('adminReceipt').click()">Choose File</button>
+  `;
+  document.getElementById('adminReceipt').addEventListener('change', handleAdminFileSelect);
+  document.getElementById('adminFileUploadArea').addEventListener('click', () => document.getElementById('adminReceipt').click());
+}
+
+async function handleAdminTransactionSubmit(event) {
+  event.preventDefault();
+  
+  const formData = new FormData(event.target);
+  const submitBtn = document.getElementById('adminSubmitBtn');
+  
+  // Validate required fields
+  const description = formData.get('description');
+  const amount = formData.get('amount');
+  const budgetId = formData.get('budgetId');
+  
+  if (!description || !amount || !budgetId) {
+    alert('Please fill in all required fields');
+    return;
+  }
+  
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Creating Transaction...';
+  
+  try {
+    const response = await fetch('/admin/transaction/new', {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+    }
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      alert('Transaction created successfully!');
+      closeAddTransactionModal();
+      window.location.reload();
+    } else {
+      alert('Failed to create transaction: ' + result.error);
+    }
+  } catch (error) {
+    console.error('Error creating transaction:', error);
+    alert('Error creating transaction: ' + error.message);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Create Transaction';
+  }
+}
+
+function showBulkUploadModal() {
+  alert('Bulk upload feature coming soon!');
+}
+
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 </script>
 

@@ -21,6 +21,7 @@ const { cloudinaryService, upload } = require("./services/cloudinaryService");
 const ocrService = require("./services/ocrService");
 const anomalyService = require("./services/anomalyService");
 const blockchainService = require("./services/blockchainService");
+const PDFDocument = require('pdfkit');
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -150,7 +151,7 @@ app.get("/", async (req, res) => {
         }
         
         const termConditions = variations.map(variation => ({
-          $or: [
+        $or: [
             { name: { $regex: variation, $options: "i" } },
             { department: { $regex: variation, $options: "i" } },
             { state: { $regex: variation, $options: "i" } },
@@ -345,9 +346,9 @@ app.get("/admin/editors/new", async (req, res) => {
     // Get all budgets and their departments
     const budgets = await Budget.find({}).populate('departments');
     const departments = await Department.find({});
-    
-    res.render("createEditor", {
-      title: "Create New Editor",
+  
+  res.render("createEditor", {
+    title: "Create New Editor",
       error: null,
       budgets,
       departments
@@ -648,10 +649,10 @@ app.post("/budget/new", async (req, res) => {
 
 app.get("/budget/:id", async (req, res) => {
   try {
-    const budget = await Budget.findById(req.params.id)
-      .populate("creator")
-      .populate("assignedEditors");
-    if (!budget) return res.status(404).send("Budget not found");
+  const budget = await Budget.findById(req.params.id)
+    .populate("creator")
+    .populate("assignedEditors");
+  if (!budget) return res.status(404).send("Budget not found");
     
     // Get all transactions for this budget
     const transactions = await Transaction.find({ budgetId: req.params.id })
@@ -836,6 +837,91 @@ app.post("/admin/budget/:id/status", async (req, res) => {
   }
 });
 
+// Admin transaction creation route
+app.post("/admin/transaction/new", upload.single('receipt'), async (req, res) => {
+  if (!req.session.isAdmin) {
+    return res.status(401).json({ success: false, error: "Admin access required" });
+  }
+  
+  try {
+    const { description, amount, budgetId, notes, category, vendor } = req.body;
+    
+    if (!description || !amount || !budgetId) {
+      return res.status(400).json({ success: false, error: "Missing required fields" });
+    }
+    
+    // Verify budget exists
+    const budget = await Budget.findById(budgetId);
+    if (!budget) {
+      return res.status(404).json({ success: false, error: "Budget not found" });
+    }
+    
+    let receiptData = {};
+    if (req.file) {
+      try {
+        // Upload receipt to Cloudinary
+        const uploadResult = await cloudinaryService.uploadReceipt(req.file, Date.now());
+        if (uploadResult.success) {
+          receiptData = {
+            url: uploadResult.url,
+            publicId: uploadResult.publicId,
+            filename: req.file.originalname,
+            mimetype: req.file.mimetype,
+            size: req.file.size,
+            uploadedAt: new Date()
+          };
+        } else {
+          console.error('Cloudinary upload failed:', uploadResult.error);
+          // Continue without receipt if upload fails
+        }
+      } catch (uploadError) {
+        console.error('Receipt upload error:', uploadError);
+        // Continue without receipt if upload fails
+      }
+    }
+    
+    const transaction = new Transaction({
+      description,
+      amount: parseFloat(amount),
+      budgetId,
+      notes,
+      category,
+      receipt: receiptData,
+      createdBy: req.session.userId,
+      status: 'approved' // Admin transactions are auto-approved
+    });
+    
+    await transaction.save();
+    
+    // Update budget spent amount
+    budget.spent += parseFloat(amount);
+    budget.remaining = budget.totalBudget - budget.spent;
+    await budget.save();
+    
+    // Store transaction in blockchain
+    try {
+      const blockchainResult = await blockchainService.storeTransaction(transaction);
+      if (blockchainResult.success) {
+        transaction.blockchainId = blockchainResult.transactionId;
+        transaction.blockHash = blockchainResult.blockHash;
+        transaction.blockIndex = blockchainResult.blockIndex;
+        await transaction.save();
+        console.log('Transaction stored in blockchain:', blockchainResult.transactionId);
+      }
+    } catch (blockchainError) {
+      console.error('Blockchain storage error:', blockchainError);
+      // Continue without blockchain storage
+    }
+    
+    await auditLog("create", "Transaction", transaction._id, transaction.description, req, null, transaction.toObject());
+    
+    res.json({ success: true, transactionId: transaction._id });
+  } catch (error) {
+    console.error('Error creating admin transaction:', error);
+    res.status(500).json({ success: false, error: "Server Error" });
+  }
+});
+
 // Chart data API routes for AI enhanced page
 app.get("/api/budget/:id/charts/spending", async (req, res) => {
   try {
@@ -1016,18 +1102,18 @@ app.post("/budget/:id/departments", async (req, res) => {
       const availableAmount = parentBudget.totalBudget - totalAllocated;
       return res.status(400).send(`Budget exceeded! You can only allocate ₹${availableAmount.toLocaleString()} more. Current allocation: ₹${totalAllocated.toLocaleString()}, Total budget: ₹${parentBudget.totalBudget.toLocaleString()}`);
     }
-    
-    const department = new Department({
-      name,
+  
+  const department = new Department({
+    name,
       budget: requestedAmount,
-      budgetId: req.params.id,
-      createdBy: req.session.userId
-    });
-    await department.save();
-    
-    await auditLog("create", "Department", department._id, department.name, req, null, department.toObject());
-    
-    res.redirect(`/budget/${req.params.id}/departments`);
+    budgetId: req.params.id,
+    createdBy: req.session.userId
+  });
+  await department.save();
+  
+  await auditLog("create", "Department", department._id, department.name, req, null, department.toObject());
+  
+  res.redirect(`/budget/${req.params.id}/departments`);
   } catch (error) {
     console.error(error);
     res.status(500).send("Server Error");
@@ -1120,6 +1206,14 @@ app.post("/vendor/:id/transactions", async (req, res) => {
     createdBy: req.session.userId
   });
   await transaction.save();
+  
+  // Update budget spent amount
+  const budget = await Budget.findById(project.departmentId.budgetId);
+  if (budget) {
+    budget.spent += parseFloat(amount);
+    budget.remaining = budget.totalBudget - budget.spent;
+    await budget.save();
+  }
   
   await auditLog("create", "Transaction", transaction._id, transaction.description, req, null, transaction.toObject());
   
@@ -1461,6 +1555,14 @@ app.post("/editor/transaction/new", upload.single('receipt'), async (req, res) =
     });
     
     await transaction.save();
+    
+    // Update budget spent amount
+    const budget = await Budget.findById(budgetId);
+    if (budget) {
+      budget.spent += parseFloat(amount);
+      budget.remaining = budget.totalBudget - budget.spent;
+      await budget.save();
+    }
     
     // Store transaction in blockchain
     try {
@@ -1897,6 +1999,293 @@ app.get("/api/budget/:id/charts/timeline", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to generate timeline chart" });
+  }
+});
+
+app.get("/api/budget/:id/charts/vendors", async (req, res) => {
+  try {
+    const budget = await Budget.findById(req.params.id);
+    if (!budget) return res.status(404).json({ error: "Budget not found" });
+
+    // Get transactions for this budget
+    const transactions = await Transaction.find({ budgetId: req.params.id, status: 'approved' });
+    
+    // Group by vendor (if vendor info is available) or show basic spending breakdown
+    const vendorSpending = {};
+    transactions.forEach(transaction => {
+      const vendor = transaction.notes || 'General';
+      vendorSpending[vendor] = (vendorSpending[vendor] || 0) + transaction.amount;
+    });
+
+    if (Object.keys(vendorSpending).length > 0) {
+      const labels = Object.keys(vendorSpending);
+      const data = Object.values(vendorSpending);
+      const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'];
+
+      const chartData = {
+        labels,
+        datasets: [{
+          data,
+          backgroundColor: colors.slice(0, labels.length),
+          borderColor: colors.slice(0, labels.length),
+          borderWidth: 1
+        }]
+      };
+      res.json(chartData);
+    } else {
+      // Fallback to basic spending breakdown
+      const data = {
+        labels: ['Spent', 'Remaining'],
+        datasets: [{
+          data: [budget.spent, budget.remaining],
+          backgroundColor: ['#ef4444', '#10b981']
+        }]
+      };
+      res.json(data);
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server Error" });
+  }
+});
+
+// Get transactions for a budget
+app.get("/api/budget/:id/transactions", async (req, res) => {
+  try {
+    const transactions = await Transaction.find({ budgetId: req.params.id })
+      .populate('createdBy', 'name')
+      .sort({ createdAt: -1 });
+    
+    res.json({ transactions });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server Error" });
+  }
+});
+
+// Chatbot API route
+app.post("/api/chatbot/ask", async (req, res) => {
+  try {
+    const { message, budgetId, context } = req.body;
+    
+    if (!message || !budgetId) {
+      return res.status(400).json({ success: false, error: "Missing required fields" });
+    }
+    
+    // Get budget details
+    const budget = await Budget.findById(budgetId);
+    if (!budget) {
+      return res.status(404).json({ success: false, error: "Budget not found" });
+    }
+    
+    // Get recent transactions for context
+    const transactions = await Transaction.find({ budgetId })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .populate('createdBy', 'name');
+    
+    // Create context for AI
+    const budgetContext = {
+      budgetName: budget.name,
+      department: budget.department,
+      state: budget.state,
+      city: budget.city,
+      totalBudget: budget.totalBudget,
+      spent: budget.spent,
+      remaining: budget.remaining,
+      status: budget.status,
+      fiscalYear: budget.fiscalYear,
+      recentTransactions: transactions.map(t => ({
+        description: t.description,
+        amount: t.amount,
+        date: t.createdAt,
+        createdBy: t.createdBy?.name || 'Unknown'
+      }))
+    };
+    
+    // Simple AI response based on keywords and context
+    let response = generateAIResponse(message, budgetContext);
+    
+    res.json({ success: true, response });
+  } catch (error) {
+    console.error('Chatbot error:', error);
+    res.status(500).json({ success: false, error: "Server Error" });
+  }
+});
+
+function generateAIResponse(message, context) {
+  const lowerMessage = message.toLowerCase();
+  
+  // Budget overview questions
+  if (lowerMessage.includes('budget') && (lowerMessage.includes('overview') || lowerMessage.includes('summary'))) {
+    return `Here's an overview of the ${context.budgetName} budget:
+
+📊 **Budget Details:**
+- Department: ${context.department}
+- Location: ${context.city}, ${context.state}
+- Total Budget: ₹${context.totalBudget.toLocaleString()}
+- Amount Spent: ₹${context.spent.toLocaleString()}
+- Remaining: ₹${context.remaining.toLocaleString()}
+- Status: ${context.status}
+- Fiscal Year: ${context.fiscalYear}
+
+The budget is ${((context.spent / context.totalBudget) * 100).toFixed(1)}% utilized.`;
+  }
+  
+  // Spending questions
+  if (lowerMessage.includes('spent') || lowerMessage.includes('spending')) {
+    return `Current spending for ${context.budgetName}:
+
+💰 **Spending Summary:**
+- Total Spent: ₹${context.spent.toLocaleString()}
+- Remaining Budget: ₹${context.remaining.toLocaleString()}
+- Utilization Rate: ${((context.spent / context.totalBudget) * 100).toFixed(1)}%
+
+${context.spent > context.totalBudget * 0.8 ? '⚠️ **Warning:** Budget utilization is over 80%. Consider monitoring expenses closely.' : '✅ Budget utilization is within normal limits.'}`;
+  }
+  
+  // Transaction questions
+  if (lowerMessage.includes('transaction') || lowerMessage.includes('expense')) {
+    if (context.recentTransactions.length > 0) {
+      let response = `Recent transactions for ${context.budgetName}:\n\n`;
+      context.recentTransactions.slice(0, 5).forEach((tx, index) => {
+        response += `${index + 1}. ${tx.description} - ₹${tx.amount.toLocaleString()} (${new Date(tx.date).toLocaleDateString()})\n`;
+      });
+      return response;
+    } else {
+      return `No recent transactions found for ${context.budgetName}. The budget shows ₹${context.spent.toLocaleString()} spent, but no individual transactions are recorded.`;
+    }
+  }
+  
+  // Status questions
+  if (lowerMessage.includes('status') || lowerMessage.includes('state')) {
+    return `The current status of ${context.budgetName} is **${context.status}**.
+
+${context.status === 'draft' ? 'This budget is still in draft mode and not yet approved.' : ''}
+${context.status === 'pending' ? 'This budget is pending approval.' : ''}
+${context.status === 'approved' ? 'This budget has been approved and is active.' : ''}
+${context.status === 'ongoing' ? 'This budget is currently ongoing and active.' : ''}
+${context.status === 'finished' ? 'This budget has been completed.' : ''}
+${context.status === 'rejected' ? 'This budget has been rejected.' : ''}`;
+  }
+  
+  // Department questions
+  if (lowerMessage.includes('department')) {
+    return `The ${context.budgetName} budget belongs to the **${context.department}** department.
+
+📍 **Location:** ${context.city}, ${context.state}
+📅 **Fiscal Year:** ${context.fiscalYear}`;
+  }
+  
+  // Help questions
+  if (lowerMessage.includes('help') || lowerMessage.includes('what can you do')) {
+    return `I can help you with information about this budget! Here's what I can tell you about:
+
+🔍 **Budget Information:**
+- Ask about budget overview, spending, or status
+- Get details about recent transactions
+- Learn about department and location details
+
+💡 **Try asking:**
+- "What's the budget overview?"
+- "How much has been spent?"
+- "Show me recent transactions"
+- "What's the current status?"
+- "Tell me about the department"
+
+What would you like to know?`;
+  }
+  
+  // Default response
+  return `I understand you're asking about "${message}". 
+
+For the ${context.budgetName} budget, I can help you with:
+- Budget overview and spending details
+- Recent transactions
+- Current status and department information
+- Spending patterns and analysis
+
+Could you be more specific about what you'd like to know? For example, try asking "What's the budget overview?" or "How much has been spent?"`;
+}
+
+app.get("/api/budget/:id/export/pdf", async (req, res) => {
+  try {
+    const budget = await Budget.findById(req.params.id);
+    if (!budget) {
+      return res.status(404).json({ error: "Budget not found" });
+    }
+
+    // Get transactions for this budget
+    const transactions = await Transaction.find({ budgetId: req.params.id })
+      .populate('createdBy', 'name')
+      .sort({ createdAt: -1 });
+
+    // Create PDF
+    const doc = new PDFDocument();
+    
+    // Set response headers
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="budget-report-${budget.name.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf"`);
+    
+    // Pipe PDF to response
+    doc.pipe(res);
+
+    // Add title
+    doc.fontSize(20).text('Budget Report', 50, 50);
+    doc.fontSize(16).text(budget.name, 50, 80);
+    doc.fontSize(12).text(`Generated on: ${new Date().toLocaleDateString()}`, 50, 100);
+
+    // Add budget details
+    doc.fontSize(14).text('Budget Details', 50, 130);
+    doc.fontSize(10).text(`Department: ${budget.department}`, 50, 150);
+    doc.text(`Location: ${budget.city}, ${budget.state}`, 50, 165);
+    doc.text(`Fiscal Year: ${budget.fiscalYear}`, 50, 180);
+    doc.text(`Status: ${budget.status}`, 50, 195);
+    doc.text(`Total Budget: ₹${budget.totalBudget.toLocaleString()}`, 50, 210);
+    doc.text(`Amount Spent: ₹${budget.spent.toLocaleString()}`, 50, 225);
+    doc.text(`Remaining: ₹${budget.remaining.toLocaleString()}`, 50, 240);
+    doc.text(`Utilization: ${((budget.spent / budget.totalBudget) * 100).toFixed(1)}%`, 50, 255);
+
+    // Add transactions section
+    if (transactions.length > 0) {
+      doc.fontSize(14).text('Recent Transactions', 50, 285);
+      
+      let yPosition = 305;
+      transactions.slice(0, 20).forEach((transaction, index) => {
+        if (yPosition > 700) {
+          doc.addPage();
+          yPosition = 50;
+        }
+        
+        doc.fontSize(10).text(`${index + 1}. ${transaction.description}`, 50, yPosition);
+        doc.text(`   Amount: ₹${transaction.amount.toLocaleString()}`, 70, yPosition + 15);
+        doc.text(`   Date: ${new Date(transaction.createdAt).toLocaleDateString()}`, 70, yPosition + 30);
+        doc.text(`   Created by: ${transaction.createdBy?.name || 'Unknown'}`, 70, yPosition + 45);
+        doc.text(`   Status: ${transaction.status}`, 70, yPosition + 60);
+        
+        yPosition += 80;
+      });
+    } else {
+      doc.fontSize(12).text('No transactions found for this budget.', 50, 285);
+    }
+
+    let summaryY = yPosition + 20;
+    if (transactions.length === 0) {
+      summaryY = 285 + 20;
+    }
+    
+    doc.fontSize(14).text('Summary', 50, summaryY);
+    doc.fontSize(10).text(`This budget has ${transactions.length} transactions totaling ₹${budget.spent.toLocaleString()}.`, 50, summaryY + 20);
+    doc.text(`The budget is ${((budget.spent / budget.totalBudget) * 100).toFixed(1)}% utilized.`, 50, summaryY + 35);
+    
+    if (budget.spent > budget.totalBudget * 0.8) {
+      doc.text('⚠️ Warning: Budget utilization is over 80%.', 50, summaryY + 50);
+    }
+
+    doc.end();
+  } catch (error) {
+    console.error('PDF export error:', error);
+    res.status(500).json({ error: "Failed to generate PDF" });
   }
 });
 
