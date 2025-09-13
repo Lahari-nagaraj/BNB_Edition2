@@ -1,0 +1,14 @@
+<%- include('partials/header') %>
+<h2>My Projects</h2>
+<div class="cards">
+<% budgets.forEach(budget=>{ %>
+<div class="card">
+<h3><%= budget.name %></h3>
+<p>Department: <%= budget.department %></p>
+<p>Total Budget: <%= budget.totalBudget %></p>
+<a href="/budget/<%= budget._id %>"><button>View</button></a>
+<a href="/budget/<%= budget._id %>/edit"><button>Edit</button></a>
+</div>
+<% }) %>
+</div>
+<%- include('partials/footer') %>

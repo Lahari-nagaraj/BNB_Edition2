@@ -1,76 +1,26 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title><%= title %></title>
-  <link rel="stylesheet" href="/css/home.css">
-</head>
-<body>
-<header>
-  <h1>BNB Fund Management</h1>
-  <nav>
-    <% if (session && session.userId) { %>
-      <span>Welcome, <%= users.find(u => u._id.toString() === session.userId)?.name || "User" %></span>
-      <a href="/logout">Logout</a>
-    <% } else { %>
-      <a href="/login">Login</a> |
-      <a href="/register">Sign Up</a>
-    <% } %>
-    <a href="/budget/new">Add Budget</a>
-  </nav>
-</header>
+<%- include('partials/header') %>
+<div class="hero">
+<h2>Available Public Budgets</h2>
+<form method="get" style="margin-top:1rem;">
+<input type="text" name="q" placeholder="Search by name" value="<%= searchQuery %>">
+<select name="userState">
+<option value="">All States</option>
+<% indianStates.forEach(state => { %>
+<option value="<%= state %>" <%= userState === state ? 'selected' : '' %>><%= state %></option>
+<% }) %>
+</select>
 
-<main>
-  <section class="hero">
-    <h2>Track Public Budgets of Your State</h2>
-    <p>Trust and transparency in institutional funds, from government to NGOs, is just a click away.</p>
-  </section>
-
-  <section class="dashboard">
-    <% if (!userState) { %>
-      <p class="info">Detecting your location to show your state budgets...</p>
-    <% } else { %>
-      <h2>Public Budgets in <%= userState %></h2>
-      <div class="cards">
-        <% budgets.forEach(budget => { %>
-          <div class="card">
-            <h3><%= budget.name %></h3>
-            <p><strong>Department:</strong> <%= budget.department %></p>
-            <p><strong>State:</strong> <%= budget.state %></p>
-            <p><strong>Country:</strong> <%= budget.country %></p>
-            <p><strong>Total Budget:</strong> ₹<%= budget.totalBudget.toLocaleString() %></p>
-            <p><strong>Fiscal Year:</strong> <%= budget.fiscalYear %></p>
-            <p><strong>Approved By:</strong> <%= budget.approvedBy %></p>
-            <p><strong>Type:</strong> <%= budget.type %></p>
-            <h4>Expenses:</h4>
-            <ul>
-              <% budget.expenses.forEach(exp => { %>
-                <li><%= exp.description %> - ₹<%= exp.amount.toLocaleString() %> to <%= exp.allocatedTo %></li>
-              <% }) %>
-            </ul>
-          </div>
-        <% }) %>
-      </div>
-    <% } %>
-  </section>
-</main>
-
-<footer>
-  <p>&copy; 2025 BNB Fund Management. All rights reserved.</p>
-</footer>
-
-<script>
-if (navigator.geolocation) {
-  navigator.geolocation.getCurrentPosition(async (position) => {
-    const lat = position.coords.latitude;
-    const lon = position.coords.longitude;
-    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`);
-    const data = await res.json();
-    const state = data.address.state || data.address.county || "";
-    if (state && !window.location.search.includes("state")) {
-      window.location.href = "/?state=" + encodeURIComponent(state);
-    }
-  });
-}
-</script>
-</body>
-</html>
+<button type="submit">Filter</button>
+</form>
+</div>
+<div class="cards">
+<% budgets.forEach(budget=>{ %>
+<div class="card">
+<h3><%= budget.name %></h3>
+<p>Department: <%= budget.department %></p>
+<p>State: <%= budget.state %></p>
+<a href="/budget/<%= budget._id %>"><button>View</button></a>
+</div>
+<% }) %>
+</div>
+<%- include('partials/footer') %>

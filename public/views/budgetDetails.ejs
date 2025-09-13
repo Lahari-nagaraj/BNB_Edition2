@@ -1,0 +1,19 @@
+<%- include('partials/header') %>
+<h2><%= budget.name %></h2>
+<p>Department: <%= budget.department %></p>
+<p>State: <%= budget.state %></p>
+<p>Country: <%= budget.country %></p>
+<p>Total Budget: <%= budget.totalBudget %></p>
+<p>Fiscal Year: <%= budget.fiscalYear %></p>
+<p>Approved By: <%= budget.approvedBy %></p>
+<p>Type: <%= budget.type %></p>
+<h3>Expenses</h3>
+<ul>
+<% budget.expenses.forEach(e=>{ %>
+<li><strong><%= e.description %></strong> - <%= e.amount %> (Allocated to: <%= e.allocatedTo %>)</li>
+<% }) %>
+</ul>
+<% if(session.userId && session.userId.toString() === budget.creator._id.toString()){ %>
+<a href="/budget/<%= budget._id %>/edit"><button>Edit Budget</button></a>
+<% } %>
+<%- include('partials/footer') %>

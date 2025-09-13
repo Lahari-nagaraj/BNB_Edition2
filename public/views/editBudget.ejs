@@ -1,0 +1,12 @@
+<%- include('partials/header') %>
+<div class="form-container">
+<h1>Edit <%= budget.name %></h1>
+<% if(error){ %><div class="error"><%= error %></div><% } %>
+<form method="post">
+<input type="text" name="description" placeholder="Expense Description" required>
+<input type="number" name="amount" placeholder="Amount" required>
+<input type="text" name="allocatedTo" placeholder="Allocated To" required>
+<button type="submit">Add Expense</button>
+</form>
+</div>
+<%- include('partials/footer') %>
