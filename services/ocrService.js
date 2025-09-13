@@ -4,14 +4,30 @@ const axios = require('axios');
 class OCRService {
   constructor() {
     this.worker = null;
+    this.isAvailable = true;
   }
 
   // Initialize Tesseract worker
   async initializeWorker() {
+    if (!this.isAvailable) {
+      throw new Error('OCR service is disabled due to previous errors');
+    }
+    
     if (!this.worker) {
-      this.worker = await Tesseract.createWorker('eng', 1, {
-        logger: m => console.log(m)
-      });
+      try {
+        this.worker = await Tesseract.createWorker('eng', 1, {
+          logger: m => {
+            // Only log important messages, not all progress updates
+            if (m.status === 'loading tesseract core' || m.status === 'initializing tesseract' || m.status === 'loading language traineddata' || m.status === 'initializing api') {
+              console.log(`OCR: ${m.status} - ${m.progress * 100}%`);
+            }
+          }
+        });
+      } catch (error) {
+        console.error('Failed to initialize Tesseract worker:', error);
+        this.isAvailable = false;
+        throw new Error('OCR service unavailable');
+      }
     }
     return this.worker;
   }
@@ -28,9 +44,10 @@ class OCRService {
       };
     } catch (error) {
       console.error('OCR extraction error:', error);
+      this.isAvailable = false; // Disable OCR after first error
       return {
         success: false,
-        error: error.message,
+        error: 'OCR service temporarily unavailable',
         text: ''
       };
     }
@@ -48,9 +65,10 @@ class OCRService {
       };
     } catch (error) {
       console.error('OCR extraction from URL error:', error);
+      this.isAvailable = false; // Disable OCR after first error
       return {
         success: false,
-        error: error.message,
+        error: 'OCR service temporarily unavailable',
         text: ''
       };
     }

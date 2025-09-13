@@ -376,7 +376,7 @@ document.addEventListener('DOMContentLoaded', function() {
       });
 
       const data = await response.json();
-      addMessage(data.response);
+      addMessage(data.reply || data.response || 'No response received');
     } catch (error) {
       addMessage('Sorry, I encountered an error. Please try again.');
     }

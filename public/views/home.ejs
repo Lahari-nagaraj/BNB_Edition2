@@ -29,12 +29,6 @@
       <% }) %>
     </select>
 
-    <select name="status">
-      <option value="">📊 All Status</option>
-      <% statuses.forEach(stat => { %>
-        <option value="<%= stat %>" <%= status===stat ? 'selected':'' %>><%= stat %></option>
-      <% }) %>
-    </select>
 
     <button type="submit">🔍 Search</button>
     <button type="button" onclick="clearFilters()">🗑️ Clear</button>
@@ -42,7 +36,7 @@
 </div>
 
 <!-- Search Results Info -->
-<% if (searchQuery || userState || userCity || department || status) { %>
+<% if (searchQuery || userState || userCity || department) { %>
   <div class="search-results-info <%= budgets.length === 0 ? 'no-results' : '' %>">
     <% if (budgets.length > 0) { %>
       <strong>🔍 Found <%= budgets.length %> budget<%= budgets.length !== 1 ? 's' : '' %></strong>
@@ -50,14 +44,12 @@
       <% if (userState) { %> in <%= userState %><% } %>
       <% if (userCity) { %>, <%= userCity %><% } %>
       <% if (department) { %> from <%= department %> department<% } %>
-      <% if (status) { %> with <%= status %> status<% } %>
     <% } else { %>
       <strong>❌ No budgets found</strong>
       <% if (searchQuery) { %> for "<%= searchQuery %>"<% } %>
       <% if (userState) { %> in <%= userState %><% } %>
       <% if (userCity) { %>, <%= userCity %><% } %>
       <% if (department) { %> from <%= department %> department<% } %>
-      <% if (status) { %> with <%= status %> status<% } %>
       <br><small>Try adjusting your search criteria or clearing filters to see all budgets.</small>
     <% } %>
   </div>
@@ -69,7 +61,10 @@
   <div class="card budget-card">
     <div class="card-header">
       <h3><%= budget.name %></h3>
-      <span class="status-badge status-<%= budget.status %>"><%= budget.status %></span>
+      <div class="status-badges">
+        <span class="status-badge status-<%= budget.status %>"><%= budget.status %></span>
+        <span class="type-badge type-<%= budget.type.toLowerCase() %>"><%= budget.type %></span>
+      </div>
     </div>
 
     <% if (budget.aiSummary) { %>
@@ -88,7 +83,7 @@
 
     <div class="progress-section">
       <div class="progress-bar">
-        <div class="progress-fill" style="width:<%= (budget.spent/budget.totalBudget*100) %>%"></div>
+        <div class="progress-fill" style="width: <%= (budget.spent/budget.totalBudget*100) %>%"></div>
       </div>
       <p class="spending-info">
         <span class="spent">Spent: ₹<%= budget.spent.toLocaleString() %></span>

@@ -80,6 +80,12 @@ Return JSON format:
   // Transaction Classifier
   async classifyTransaction(transactionData, budgetContext) {
     try {
+      // Check if Hugging Face is available
+      if (!process.env.HF_TOKEN) {
+        console.log('HF_TOKEN not available, using fallback classification');
+        return this.getFallbackClassification(transactionData);
+      }
+
       const prompt = `Classify this transaction as 'legit' or 'suspicious' based on the context.
 
 Transaction:
@@ -102,15 +108,21 @@ Return JSON array:
   "recommended_actions": ["action1", "action2"]
 }]`;
 
-      const response = await this.hf.textGeneration({
-        model: 'microsoft/DialoGPT-medium',
-        inputs: prompt,
-        parameters: {
-          max_new_tokens: 200,
-          temperature: 0.0,
-          return_full_text: false
-        }
-      });
+      // Add timeout to prevent hanging
+      const response = await Promise.race([
+        this.hf.textGeneration({
+          model: 'microsoft/DialoGPT-medium',
+          inputs: prompt,
+          parameters: {
+            max_new_tokens: 200,
+            temperature: 0.0,
+            return_full_text: false
+          }
+        }),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('AI classification timeout')), 10000)
+        )
+      ]);
 
       return this.parseJSONResponse(response.generated_text);
     } catch (error) {

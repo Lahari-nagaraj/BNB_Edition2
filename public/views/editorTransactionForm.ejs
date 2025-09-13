@@ -331,26 +331,30 @@ function formatFileSize(bytes) {
 }
 
 async function processReceipt(file) {
-  const formData = new FormData();
-  formData.append('image', file);
+  // OCR processing disabled to prevent crashes
+  console.log('OCR processing disabled to prevent server crashes');
+  return;
   
-  try {
-    const response = await fetch('/api/ocr/process', {
-      method: 'POST',
-      body: formData
-    });
+  // const formData = new FormData();
+  // formData.append('image', file);
+  
+  // try {
+  //   const response = await fetch('/api/ocr/process', {
+  //     method: 'POST',
+  //     body: formData
+  //   });
     
-    const result = await response.json();
+  //   const result = await response.json();
     
-    if (result.success) {
-      ocrData = result.data;
-      displayOCRResults(result.data);
-    } else {
-      console.error('OCR processing failed:', result.error);
-    }
-  } catch (error) {
-    console.error('Error processing receipt:', error);
-  }
+  //   if (result.success) {
+  //     ocrData = result.data;
+  //     displayOCRResults(result.data);
+  //   } else {
+  //     console.error('OCR processing failed:', result.error);
+  //   }
+  // } catch (error) {
+  //   console.error('Error processing receipt:', error);
+  // }
 }
 
 function displayOCRResults(data) {
@@ -394,16 +398,51 @@ async function handleSubmit(event) {
   const formData = new FormData(event.target);
   const submitBtn = document.getElementById('submitBtn');
   
+  // Validate required fields
+  const description = formData.get('description');
+  const amount = formData.get('amount');
+  const budgetId = formData.get('budgetId');
+  
+  if (!description || !amount || !budgetId) {
+    alert('Please fill in all required fields');
+    return;
+  }
+  
   submitBtn.disabled = true;
   submitBtn.textContent = 'Creating Transaction...';
   
   try {
+    console.log('Submitting transaction with data:', {
+      description: formData.get('description'),
+      amount: formData.get('amount'),
+      budgetId: formData.get('budgetId'),
+      category: formData.get('category'),
+      notes: formData.get('notes')
+    });
+    
     const response = await fetch('/editor/transaction/new', {
       method: 'POST',
       body: formData
     });
     
+    console.log('Response status:', response.status);
+    console.log('Response headers:', response.headers);
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('HTTP error response:', errorText);
+      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+    }
+    
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      console.error('Non-JSON response:', text);
+      throw new Error('Server returned non-JSON response: ' + text.substring(0, 200));
+    }
+    
     const result = await response.json();
+    console.log('Response result:', result);
     
     if (result.success) {
       alert('Transaction created successfully!');

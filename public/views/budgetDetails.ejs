@@ -2,7 +2,14 @@
 <div class="container">
   <div class="budget-header">
     <h2><%= budget.name %></h2>
-    <span class="status-badge status-<%= budget.status %>"><%= budget.status %></span>
+    <div class="status-badges">
+      <span class="status-badge status-<%= budget.status %>"><%= budget.status %></span>
+      <% if(budget.type === 'Public') { %>
+        <span class="type-badge type-public">Public</span>
+      <% } else { %>
+        <span class="type-badge type-private">Private</span>
+      <% } %>
+    </div>
   </div>
   
   <div class="budget-info">
@@ -78,11 +85,24 @@
   </div>
 
   <div class="actions-section">
-    <% if(session.userId && session.userId.toString() === budget.creator._id.toString()){ %>
+    <% 
+      // Check if user is authorized to edit this budget
+      const isCreator = session.userId && budget.creator && session.userId.toString() === budget.creator._id.toString();
+      const isAssignedEditor = session.userId && budget.assignedEditors && 
+        budget.assignedEditors.some(editor => 
+          typeof editor === 'string' ? editor === session.userId.toString() : editor._id.toString() === session.userId.toString()
+        );
+      const isAdmin = session.isAdmin;
+      const canEdit = isCreator || isAssignedEditor || isAdmin;
+    %>
+    
+    <% if(canEdit) { %>
     <a href="/budget/<%= budget._id %>/edit"><button>Edit Budget</button></a>
     <a href="/budget/<%= budget._id %>/departments"><button class="btn-primary">Manage Departments</button></a>
     <% } %>
+    
     <a href="/budget/<%= budget._id %>/visualization"><button class="btn-info">📊 Analytics & Visualization</button></a>
+    
     <% if(session.isAdmin && budget.status === 'pending'){ %>
     <form method="post" action="/budget/<%= budget._id %>/approve" style="display: inline;">
       <button type="submit" class="btn-approve">Approve Budget</button>
@@ -91,7 +111,7 @@
   </div>
 
   <!-- Receipt Upload Section -->
-  <% if(session.userRole === 'editor' || session.isAdmin){ %>
+  <% if(canEdit) { %>
   <div class="receipt-upload-section">
     <h3>📄 Add Expense with Receipt</h3>
     <form id="expenseForm" enctype="multipart/form-data">
@@ -187,6 +207,70 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+}
+
+.status-badges {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-draft {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-pending {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-approved {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-active {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-completed {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.type-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.type-public {
+  background: #e0f2fe;
+  color: #0c4a6e;
+}
+
+.type-private {
+  background: #f3e8ff;
+  color: #6b21a8;
 }
 
 .info-grid {

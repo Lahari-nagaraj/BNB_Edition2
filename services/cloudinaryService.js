@@ -27,14 +27,22 @@ class CloudinaryService {
         };
       }
 
-      const result = await cloudinary.uploader.upload(file.path, {
-        folder: 'bnb-receipts',
-        public_id: `receipt_${transactionId}_${Date.now()}`,
-        resource_type: 'auto', // Automatically detect image or PDF
-        transformation: [
-          { quality: 'auto' },
-          { fetch_format: 'auto' }
-        ]
+      // Use file buffer instead of file path to avoid file system issues
+      const result = await new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream({
+          folder: 'bnb-receipts',
+          public_id: `receipt_${transactionId}_${Date.now()}`,
+          resource_type: 'auto', // Automatically detect image or PDF
+          transformation: [
+            { quality: 'auto' },
+            { fetch_format: 'auto' }
+          ]
+        }, (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        });
+        
+        uploadStream.end(file.buffer);
       });
 
       return {
@@ -157,15 +165,8 @@ class CloudinaryService {
   }
 }
 
-// Configure multer for file uploads (temporary storage)
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/')
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + '-' + file.originalname)
-  }
-});
+// Configure multer for file uploads (memory storage)
+const storage = multer.memoryStorage();
 
 const upload = multer({ 
   storage: storage,

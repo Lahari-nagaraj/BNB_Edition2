@@ -82,7 +82,6 @@ const indianStates = [
   "Andaman and Nicobar Islands",
 ];
 
-// Audit logging middleware
 const auditLog = async (action, entityType, entityId, entityName, req, oldData = null, newData = null) => {
   try {
     if (req.session.userId) {
@@ -113,14 +112,13 @@ app.use((req, res, next) => {
 
 app.get("/", async (req, res) => {
   try {
-    const query = { type: "Public", status: { $in: ["approved", "active", "draft"] } };
+    const query = { type: "Public", status: { $in: ["approved", "active"] } };
     const searchQuery = req.query.q || "";
     const department = req.query.department || "";
     const status = req.query.status || "";
     const userState = req.query.state || "";
     const userCity = req.query.city || "";
 
-    // Build search conditions
     const searchConditions = [];
     
     if (searchQuery) {
@@ -139,9 +137,6 @@ app.get("/", async (req, res) => {
       searchConditions.push({ department: { $regex: department, $options: "i" } });
     }
     
-    if (status) {
-      searchConditions.push({ status: status });
-    }
     
     if (userState) {
       searchConditions.push({ state: { $regex: userState, $options: "i" } });
@@ -151,14 +146,12 @@ app.get("/", async (req, res) => {
       searchConditions.push({ city: { $regex: userCity, $options: "i" } });
     }
 
-    // Combine all conditions
     if (searchConditions.length > 0) {
       query.$and = searchConditions;
     }
 
     const budgets = await Budget.find(query).populate("creator").sort({ createdAt: -1 }).limit(20);
     
-    // Generate AI summaries for budgets that don't have them
     for (let budget of budgets) {
       if (!budget.aiSummary && budget.status === 'approved') {
         try {
@@ -174,20 +167,17 @@ app.get("/", async (req, res) => {
     }
     
     const departments = await Budget.distinct("department", { type: "Public" });
-    const statuses = await Budget.distinct("status", { type: "Public" });
-    const states = indianStates; // Use complete state list instead of just from budgets
+    const states = indianStates;
     const cities = await Budget.distinct("city", { type: "Public" });
     
     res.render("home", {
       title: "BNB Fund Management",
       budgets,
       departments,
-      statuses,
       states,
       cities,
       searchQuery,
       department,
-      status,
       userState,
       userCity
     });
@@ -198,7 +188,6 @@ app.get("/", async (req, res) => {
 });
 
 
-// LOGIN
 app.get("/login", (req, res) =>
   res.render("login", { title: "Login", error: null })
 );
@@ -221,7 +210,6 @@ app.post("/login", async (req, res) => {
   res.render("login", { title: "Login", error: "Invalid credentials" });
 });
 
-// REGISTER
 app.get("/register", (req, res) =>
   res.render("register", { title: "Register", error: null })
 );
@@ -243,7 +231,7 @@ app.post("/register", async (req, res) => {
     email, 
     password: hashed, 
     role: role || "public",
-    isAdmin: role === "admin" // Set isAdmin for backward compatibility
+    isAdmin: role === "admin"
   });
   await user.save();
   req.session.userId = user._id;
@@ -258,13 +246,11 @@ app.post("/register", async (req, res) => {
   res.redirect("/");
 });
 
-// LOGOUT
 app.get("/logout", (req, res) => {
   req.session.destroy();
   res.redirect("/");
 });
 
-// CREATE BUDGET
 app.get("/budget/new", (req, res) => {
   if (!req.session.userId) return res.redirect("/login");
   res.render("addBudget", {
@@ -274,7 +260,6 @@ app.get("/budget/new", (req, res) => {
   });
 });
 
-// EDITOR MANAGEMENT ROUTES
 app.get("/admin/editors", async (req, res) => {
   if (!req.session.isAdmin) return res.status(403).send("Admin access required");
   
@@ -309,7 +294,6 @@ app.post("/admin/editors/new", async (req, res) => {
   try {
     const { name, email, password, role, permissions } = req.body;
     
-    // Check if editor already exists
     const existingEditor = await Editor.findOne({ email });
     if (existingEditor) {
       return res.render("createEditor", {
@@ -318,10 +302,8 @@ app.post("/admin/editors/new", async (req, res) => {
       });
     }
     
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
     
-    // Create editor
     const editor = new Editor({
       name,
       email,
@@ -350,7 +332,6 @@ app.post("/admin/editors/new", async (req, res) => {
   }
 });
 
-// ASSIGN EDITOR TO BUDGET
 app.post("/budget/:id/assign-editor", async (req, res) => {
   if (!req.session.isAdmin) return res.status(403).send("Admin access required");
   
@@ -363,13 +344,11 @@ app.post("/budget/:id/assign-editor", async (req, res) => {
       return res.status(404).json({ error: "Budget or Editor not found" });
     }
     
-    // Add editor to budget
     if (!budget.assignedEditors.includes(editorId)) {
       budget.assignedEditors.push(editorId);
       await budget.save();
     }
     
-    // Add budget to editor
     if (!editor.assignedBudgets.includes(req.params.id)) {
       editor.assignedBudgets.push(req.params.id);
       await editor.save();
@@ -414,11 +393,9 @@ app.post("/budget/new", async (req, res) => {
       states: indianStates,
     });
   
-  // Generate editor credentials
   const editorEmail = `editor_${Date.now()}@bnb.com`;
   const editorPassword = crypto.randomBytes(6).toString("hex");
   
-  // Create editor user in User model
   const hashedPassword = await bcrypt.hash(editorPassword, 10);
   const editorUser = new User({
     name: `Editor for ${name}`,
@@ -429,7 +406,6 @@ app.post("/budget/new", async (req, res) => {
   });
   await editorUser.save();
   
-  // Create budget
   const budget = new Budget({
     name,
     department,
@@ -449,7 +425,6 @@ app.post("/budget/new", async (req, res) => {
   });
   await budget.save();
   
-  // Update editor user with assigned budget
   editorUser.assignedBudgets.push(budget._id);
   await editorUser.save();
   
@@ -476,14 +451,14 @@ app.post("/budget/new", async (req, res) => {
   res.redirect(`/budget/${budget._id}`);
 });
 
-// BUDGET DETAILS
 app.get("/budget/:id", async (req, res) => {
-  const budget = await Budget.findById(req.params.id).populate("creator");
+  const budget = await Budget.findById(req.params.id)
+    .populate("creator")
+    .populate("assignedEditors");
   if (!budget) return res.status(404).send("Budget not found");
   res.render("budgetDetails", { title: budget.name, budget });
 });
 
-// EDIT BUDGET
 app.get("/budget/:id/edit", async (req, res) => {
   const budget = await Budget.findById(req.params.id);
   if (!budget) return res.status(404).send("Budget not found");
@@ -506,7 +481,6 @@ app.post("/budget/:id/edit", async (req, res) => {
   res.redirect(`/budget/${budget._id}`);
 });
 
-// USER DASHBOARD
 app.get("/dashboard", async (req, res) => {
   if (!req.session.userId) return res.redirect("/login");
   
@@ -522,7 +496,6 @@ app.get("/dashboard", async (req, res) => {
     });
     const totalAllocated = userBudgets.reduce((sum, budget) => sum + budget.totalBudget, 0);
     
-    // Get recent activity
     const recentActivity = await AuditLog.find({ userId: req.session.userId })
       .sort({ timestamp: -1 })
       .limit(10);
@@ -541,7 +514,6 @@ app.get("/dashboard", async (req, res) => {
   }
 });
 
-// ADMIN DASHBOARD
 app.get("/admin/dashboard", async (req, res) => {
   if (!req.session.isAdmin) return res.status(403).send("Unauthorized");
   
@@ -551,7 +523,6 @@ app.get("/admin/dashboard", async (req, res) => {
       .populate("assignedEditors")
       .sort({ createdAt: -1 });
     
-    // Get editor statistics
     const editorStats = await User.aggregate([
       { $match: { role: "editor" } },
       {
@@ -576,7 +547,6 @@ app.get("/admin/dashboard", async (req, res) => {
   }
 });
 
-// DEPARTMENT MANAGEMENT
 app.get("/budget/:id/departments", async (req, res) => {
   if (!req.session.userId) return res.redirect("/login");
   const budget = await Budget.findById(req.params.id);
@@ -605,7 +575,6 @@ app.post("/budget/:id/departments", async (req, res) => {
   res.redirect(`/budget/${req.params.id}/departments`);
 });
 
-// PROJECT MANAGEMENT
 app.get("/department/:id/projects", async (req, res) => {
   if (!req.session.userId) return res.redirect("/login");
   const department = await Department.findById(req.params.id).populate("budgetId");
@@ -635,7 +604,6 @@ app.post("/department/:id/projects", async (req, res) => {
   res.redirect(`/department/${req.params.id}/projects`);
 });
 
-// VENDOR MANAGEMENT
 app.get("/project/:id/vendors", async (req, res) => {
   if (!req.session.userId) return res.redirect("/login");
   const project = await Project.findById(req.params.id).populate("departmentId");
@@ -666,7 +634,6 @@ app.post("/project/:id/vendors", async (req, res) => {
   res.redirect(`/project/${req.params.id}/vendors`);
 });
 
-// TRANSACTION MANAGEMENT
 app.get("/vendor/:id/transactions", async (req, res) => {
   if (!req.session.userId) return res.redirect("/login");
   const vendor = await Vendor.findById(req.params.id).populate("projectId");
@@ -700,7 +667,6 @@ app.post("/vendor/:id/transactions", async (req, res) => {
   res.redirect(`/vendor/${req.params.id}/transactions`);
 });
 
-// APPROVE/REJECT TRANSACTIONS
 app.post("/transaction/:id/approve", async (req, res) => {
   if (!req.session.isAdmin) return res.status(403).send("Admin access required");
   
@@ -735,7 +701,6 @@ app.post("/transaction/:id/reject", async (req, res) => {
   res.redirect(`/vendor/${transaction.vendorId}/transactions`);
 });
 
-// BUDGET APPROVAL
 app.post("/budget/:id/approve", async (req, res) => {
   if (!req.session.isAdmin) return res.status(403).send("Admin access required");
   
@@ -751,11 +716,9 @@ app.post("/budget/:id/approve", async (req, res) => {
   res.redirect(`/budget/${budget._id}`);
 });
 
-// GAMIFICATION SYSTEM
 async function awardBadges(user) {
   const badges = [];
   
-  // First Transaction Badge
   if (user.transactionsSubmitted === 1 && !user.badges.some(b => b.name === 'First Transaction')) {
     badges.push({
       name: 'First Transaction',
@@ -765,7 +728,6 @@ async function awardBadges(user) {
     });
   }
   
-  // Receipt Master Badge
   if (user.receiptsUploaded >= 10 && !user.badges.some(b => b.name === 'Receipt Master')) {
     badges.push({
       name: 'Receipt Master',
@@ -775,7 +737,6 @@ async function awardBadges(user) {
     });
   }
   
-  // Transaction Pro Badge
   if (user.transactionsSubmitted >= 50 && !user.badges.some(b => b.name === 'Transaction Pro')) {
     badges.push({
       name: 'Transaction Pro',
@@ -785,7 +746,6 @@ async function awardBadges(user) {
     });
   }
   
-  // Perfect Week Badge
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
   const recentTransactions = await Transaction.countDocuments({
     createdBy: user._id,
@@ -801,12 +761,10 @@ async function awardBadges(user) {
     });
   }
   
-  // Add new badges to user
   if (badges.length > 0) {
     user.badges.push(...badges);
-    user.points += badges.length * 10; // 10 points per badge
+    user.points += badges.length * 10;
     
-    // Level up calculation
     const newLevel = Math.floor(user.points / 100) + 1;
     if (newLevel > user.level) {
       user.level = newLevel;
@@ -824,7 +782,6 @@ async function awardBadges(user) {
   return badges;
 }
 
-// EDITOR DASHBOARD
 app.get("/editor/dashboard", async (req, res) => {
   if (!req.session.userId || req.session.userRole !== 'editor') {
     return res.redirect("/login");
@@ -869,7 +826,6 @@ app.get("/editor/dashboard", async (req, res) => {
   }
 });
 
-// EDITOR BUDGET MANAGEMENT
 app.get("/editor/budget/:id", async (req, res) => {
   if (!req.session.userId || req.session.userRole !== 'editor') {
     return res.redirect("/login");
@@ -986,31 +942,47 @@ app.get("/editor/transactions/pending", async (req, res) => {
 
 app.post("/editor/transaction/new", upload.single('receipt'), async (req, res) => {
   if (!req.session.userId || req.session.userRole !== 'editor') {
-    return res.redirect("/login");
+    return res.status(401).json({ success: false, error: "Unauthorized" });
   }
   
   try {
     const { description, amount, budgetId, vendorId, projectId, departmentId, notes, category } = req.body;
     
+    if (!description || !amount || !budgetId) {
+      return res.status(400).json({ success: false, error: "Missing required fields" });
+    }
+    
     // Verify user has access to this budget
     const user = await User.findById(req.session.userId);
+    if (!user) {
+      return res.status(404).json({ success: false, error: "User not found" });
+    }
+    
     if (!user.assignedBudgets.includes(budgetId)) {
-      return res.status(403).send("Unauthorized access to this budget");
+      return res.status(403).json({ success: false, error: "Unauthorized access to this budget" });
     }
     
     let receiptData = {};
     if (req.file) {
-      // Upload receipt to Cloudinary
-      const uploadResult = await cloudinaryService.uploadReceipt(req.file, Date.now());
-      if (uploadResult.success) {
-        receiptData = {
-          url: uploadResult.url,
-          publicId: uploadResult.publicId,
-          filename: req.file.originalname,
-          mimetype: req.file.mimetype,
-          size: req.file.size,
-          uploadedAt: new Date()
-        };
+      try {
+        // Upload receipt to Cloudinary
+        const uploadResult = await cloudinaryService.uploadReceipt(req.file, Date.now());
+        if (uploadResult.success) {
+          receiptData = {
+            url: uploadResult.url,
+            publicId: uploadResult.publicId,
+            filename: req.file.originalname,
+            mimetype: req.file.mimetype,
+            size: req.file.size,
+            uploadedAt: new Date()
+          };
+        } else {
+          console.error('Cloudinary upload failed:', uploadResult.error);
+          // Continue without receipt if upload fails
+        }
+      } catch (uploadError) {
+        console.error('Receipt upload error:', uploadError);
+        // Continue without receipt if upload fails
       }
     }
     
@@ -1029,27 +1001,48 @@ app.post("/editor/transaction/new", upload.single('receipt'), async (req, res) =
     
     await transaction.save();
     
-    // AI Classification
-    const classification = await aiService.classifyTransaction(transaction, { _id: budgetId });
-    if (classification && classification[0]) {
-      transaction.aiClassification = classification[0];
-      await transaction.save();
+    // AI Classification (disabled to prevent crashes)
+    // try {
+    //   const classification = await aiService.classifyTransaction(transaction, { _id: budgetId });
+    //   if (classification && classification[0]) {
+    //     transaction.aiClassification = classification[0];
+    //     await transaction.save();
+    //   }
+    // } catch (aiError) {
+    //   console.error('AI classification error:', aiError);
+    //   // Continue without AI classification
+    // }
+    
+    // Update user stats (optional, don't fail if it doesn't work)
+    try {
+      user.transactionsSubmitted = (user.transactionsSubmitted || 0) + 1;
+      if (req.file) user.receiptsUploaded = (user.receiptsUploaded || 0) + 1;
+      await user.save();
+    } catch (userError) {
+      console.error('User stats update error:', userError);
+      // Continue without updating user stats
     }
     
-    // Update user stats
-    user.transactionsSubmitted += 1;
-    if (req.file) user.receiptsUploaded += 1;
-    await user.save();
+    // Award badges (optional, don't fail if it doesn't work)
+    try {
+      await awardBadges(user);
+    } catch (badgeError) {
+      console.error('Badge awarding error:', badgeError);
+      // Continue without awarding badges
+    }
     
-    // Award badges
-    await awardBadges(user);
+    // Audit log (optional, don't fail if it doesn't work)
+    try {
+      await auditLog("create", "Transaction", transaction._id, transaction.description, req, null, transaction.toObject());
+    } catch (auditError) {
+      console.error('Audit log error:', auditError);
+      // Continue without audit log
+    }
     
-    await auditLog("create", "Transaction", transaction._id, transaction.description, req, null, transaction.toObject());
-    
-    res.redirect("/editor/dashboard");
+    res.json({ success: true, message: "Transaction created successfully", transactionId: transaction._id });
   } catch (error) {
-    console.error(error);
-    res.status(500).send("Server Error");
+    console.error('Transaction creation error:', error);
+    res.status(500).json({ success: false, error: "Failed to create transaction: " + error.message });
   }
 });
 
@@ -1177,10 +1170,14 @@ app.post("/budget/:id/add-expense", upload.single('receipt'), async (req, res) =
     
     // Check if user has permission to add expenses
     const user = await User.findById(req.session.userId);
+    const isCreator = budget.creator.toString() === req.session.userId;
+    const isAssignedEditor = budget.assignedEditors.some(editor => 
+      typeof editor === 'string' ? editor === req.session.userId : editor.toString() === req.session.userId
+    );
     const hasPermission = req.session.isAdmin || 
                          user.role === 'editor' || 
-                         budget.creator.toString() === req.session.userId ||
-                         budget.assignedEditors.includes(req.session.userId);
+                         isCreator ||
+                         isAssignedEditor;
     
     if (!hasPermission) {
       return res.status(403).json({ error: "No permission to add expenses to this budget" });
@@ -1266,68 +1263,7 @@ app.get("/fix-data", async (req, res) => {
   }
 });
 
-// TEST DATA ROUTE (Remove in production)
-app.get("/add-test-data", async (req, res) => {
-  try {
-    const testBudgets = [
-      {
-        name: "Education Infrastructure Development",
-        department: "Education",
-        state: "Maharashtra",
-        city: "Mumbai",
-        country: "India",
-        totalBudget: 5000000,
-        fiscalYear: "2024-25",
-        approvedBy: "Ministry of Education",
-        type: "Public",
-        status: "approved",
-        creator: req.session.userId || new mongoose.Types.ObjectId(),
-        description: "Development of new schools and educational facilities"
-      },
-      {
-        name: "Healthcare Modernization",
-        department: "Health",
-        state: "Karnataka",
-        city: "Bangalore",
-        country: "India",
-        totalBudget: 7500000,
-        fiscalYear: "2024-25",
-        approvedBy: "Health Department",
-        type: "Public",
-        status: "approved",
-        creator: req.session.userId || new mongoose.Types.ObjectId(),
-        description: "Modernization of healthcare facilities and equipment"
-      },
-      {
-        name: "Road Infrastructure",
-        department: "Transport",
-        state: "Tamil Nadu",
-        city: "Chennai",
-        country: "India",
-        totalBudget: 10000000,
-        fiscalYear: "2024-25",
-        approvedBy: "Transport Ministry",
-        type: "Public",
-        status: "approved",
-        creator: req.session.userId || new mongoose.Types.ObjectId(),
-        description: "Construction and maintenance of road networks"
-      }
-    ];
 
-    for (let budgetData of testBudgets) {
-      const existing = await Budget.findOne({ name: budgetData.name });
-      if (!existing) {
-        const budget = new Budget(budgetData);
-        await budget.save();
-      }
-    }
-
-    res.json({ message: "Test data added successfully", count: testBudgets.length });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Failed to add test data" });
-  }
-});
 
 // AI-POWERED FEATURES
 
@@ -1337,48 +1273,36 @@ app.post("/api/chatbot", async (req, res) => {
   if (!USER_PROMPT) return res.json({ reply: "No message provided." });
   
   try {
-    if (!process.env.HF_TOKEN)
-      return res.status(400).json({ error: "HF_TOKEN not set in environment" });
+    // Use a simple fallback response instead of external API
+    const responses = [
+      "I can help you understand budget transparency and fund management. What specific information are you looking for?",
+      "Budget transparency ensures public funds are used responsibly. You can view detailed breakdowns of spending and allocations.",
+      "For budget verification, you can use the verification system to check individual transactions and their authenticity.",
+      "The system tracks budget allocations from departments to projects to vendors, providing complete visibility.",
+      "You can search budgets by department, state, city, or keywords to find relevant information quickly.",
+      "All public budgets are displayed with their current status, spending progress, and remaining allocations.",
+      "The system provides real-time updates on budget utilization and spending patterns across different categories."
+    ];
     
-    const prompt = `You are a helpful assistant for budget transparency. Provide clear, concise answers about budget management, fund tracking, and financial transparency. Keep responses under 150 words and be friendly but professional.
-
-User question: ${USER_PROMPT}`;
+    // Simple keyword-based responses
+    const lowerPrompt = USER_PROMPT.toLowerCase();
+    let reply = responses[Math.floor(Math.random() * responses.length)];
     
-    const response = await fetch(
-      "https://router.huggingface.co/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.HF_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "openai/gpt-oss-120b:fireworks-ai",
-          messages: [{ role: "user", content: prompt }],
-          temperature: 0.7,
-          top_p: 0.1,
-        }),
-      }
-    );
+    if (lowerPrompt.includes('verify') || lowerPrompt.includes('verification')) {
+      reply = "You can verify transactions using the verification system. Each transaction has a unique hash that can be checked for authenticity.";
+    } else if (lowerPrompt.includes('budget') || lowerPrompt.includes('fund')) {
+      reply = "Budgets are organized by department and show total allocation, spent amount, and remaining funds. You can view detailed breakdowns and spending patterns.";
+    } else if (lowerPrompt.includes('search') || lowerPrompt.includes('find')) {
+      reply = "Use the search filters to find budgets by department, location, or keywords. The system will show matching public budgets with their current status.";
+    } else if (lowerPrompt.includes('help') || lowerPrompt.includes('how')) {
+      reply = "I can help you navigate the budget transparency system. You can search budgets, view details, verify transactions, and track spending patterns. What would you like to know?";
+    }
     
-    if (!response.ok)
-      return res.json({
-        reply: "Sorry, I couldn't get advice at the moment. Try again.",
-      });
-    
-    const data = await response.json();
-    let reply =
-      data?.choices?.[0]?.message?.content?.trim() || "No advice returned";
-    reply = reply
-      .split("\n")
-      .filter((line) => line.trim() !== "")
-      .join("\n");
-    
-    res.json({ response: reply, model_used: "gpt-oss-120b" });
+    res.json({ reply: reply });
   } catch (error) {
     console.error('Chatbot error:', error);
     res.json({
-      response: "I'm here to help with budget transparency questions! How can I assist you today?",
+      reply: "I'm here to help with budget transparency questions! How can I assist you today?",
     });
   }
 });
@@ -1706,6 +1630,20 @@ app.get("/budget/:id/visualization", async (req, res) => {
   } catch (error) {
     console.error("Error loading visualization:", error);
     res.status(500).send("Server Error");
+  }
+});
+
+// DEBUG TEST ROUTE
+app.get("/debug/transaction", async (req, res) => {
+  try {
+    res.json({ 
+      success: true, 
+      message: "Debug endpoint working",
+      timestamp: new Date().toISOString(),
+      session: req.session
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
