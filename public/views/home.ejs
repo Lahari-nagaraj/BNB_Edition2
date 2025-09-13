@@ -1,49 +1,88 @@
 <%- include('partials/header') %>
+
 <div class="hero">
-<h2>Available Public Budgets</h2>
-<form method="get" style="margin-top:1rem;" class="filter-form">
-<input type="text" name="q" placeholder="Search by name" value="<%= searchQuery %>">
-<select name="userState">
-<option value="">All States</option>
-<% indianStates.forEach(state => { %>
-<option value="<%= state %>" <%= userState === state ? 'selected' : '' %>><%= state %></option>
-<% }) %>
-</select>
-<select name="department">
-<option value="">All Departments</option>
-<% departments.forEach(dept => { %>
-<option value="<%= dept %>" <%= department === dept ? 'selected' : '' %>><%= dept %></option>
-<% }) %>
-</select>
-<select name="budgetType">
-<option value="">All Types</option>
-<option value="Public" <%= budgetType === 'Public' ? 'selected' : '' %>>Public</option>
-<option value="Private" <%= budgetType === 'Private' ? 'selected' : '' %>>Private</option>
-</select>
-<button type="submit">Filter</button>
-</form>
+  <h2>🏛️ Public Budget Transparency Portal</h2>
+  <p>Explore approved public budgets with complete transparency</p>
+
+  <!-- Filter Form -->
+  <form method="get" class="filter-form">
+    <input type="text" name="q" placeholder="🔍 Search..." value="<%= searchQuery %>">
+
+    <select name="state">
+      <option value="">📍 All States</option>
+      <% states.forEach(state => { %>
+        <option value="<%= state %>" <%= userState===state ? 'selected':'' %>><%= state %></option>
+      <% }) %>
+    </select>
+
+    <select name="city">
+      <option value="">🏙️ All Cities</option>
+      <% cities.forEach(city => { %>
+        <option value="<%= city %>" <%= userCity===city ? 'selected':'' %>><%= city %></option>
+      <% }) %>
+    </select>
+
+    <select name="department">
+      <option value="">🏢 All Departments</option>
+      <% departments.forEach(dept => { %>
+        <option value="<%= dept %>" <%= department===dept ? 'selected':'' %>><%= dept %></option>
+      <% }) %>
+    </select>
+
+    <select name="status">
+      <option value="">📊 All Status</option>
+      <% statuses.forEach(stat => { %>
+        <option value="<%= stat %>" <%= status===stat ? 'selected':'' %>><%= stat %></option>
+      <% }) %>
+    </select>
+
+    <button type="submit">🔍 Search</button>
+  </form>
 </div>
+
+<!-- Budget Cards -->
 <div class="cards">
-<% budgets.forEach(budget=>{ %>
-<div class="card">
-<div class="card-header">
-<h3><%= budget.name %></h3>
-<span class="status-badge status-<%= budget.status %>"><%= budget.status %></span>
+  <% budgets.forEach(budget=>{ %>
+  <div class="card budget-card">
+    <div class="card-header">
+      <h3><%= budget.name %></h3>
+      <span class="status-badge status-<%= budget.status %>"><%= budget.status %></span>
+    </div>
+
+    <% if (budget.aiSummary) { %>
+      <div class="ai-summary-preview">
+        <div class="ai-icon">🤖</div>
+        <p class="ai-text"><%= budget.aiSummary.substring(0,100) %>...</p>
+      </div>
+    <% } %>
+
+    <div class="budget-info">
+      <p><strong>🏢 Department:</strong> <%= budget.department %></p>
+      <p><strong>📍 State:</strong> <%= budget.state %></p>
+      <p><strong>💰 Total:</strong> ₹<%= budget.totalBudget.toLocaleString() %></p>
+      <p><strong>📅 Year:</strong> <%= budget.fiscalYear %></p>
+    </div>
+
+    <div class="progress-section">
+      <div class="progress-bar">
+        <div class="progress-fill" style="width:<%= (budget.spent/budget.totalBudget*100) %>%"></div>
+      </div>
+      <p class="spending-info">
+        <span class="spent">Spent: ₹<%= budget.spent.toLocaleString() %></span>
+        <span class="remaining">Remaining: ₹<%= budget.remaining.toLocaleString() %></span>
+      </p>
+    </div>
+
+    <div class="card-actions">
+      <a href="/budget/<%= budget._id %>"><button>📋 View</button></a>
+      <a href="/budget/<%= budget._id %>/enhanced"><button class="btn-ai">🤖 AI Enhanced</button></a>
+      <button class="btn-verify" onclick="showBudgetVerification('<%= budget._id %>')">🔍 Verify</button>
+    </div>
+  </div>
+  <% }) %>
 </div>
-<p><strong>Department:</strong> <%= budget.department %></p>
-<p><strong>State:</strong> <%= budget.state %></p>
-<p><strong>Total Budget:</strong> ₹<%= budget.totalBudget.toLocaleString() %></p>
-<p><strong>Fiscal Year:</strong> <%= budget.fiscalYear %></p>
-<p><strong>Type:</strong> <%= budget.type %></p>
-<div class="progress-bar">
-<div class="progress-fill" style="width: <%= (budget.spent / budget.totalBudget * 100) %>%"></div>
-</div>
-<p class="spending-info">Spent: ₹<%= budget.spent.toLocaleString() %> | Remaining: ₹<%= budget.remaining.toLocaleString() %></p>
-<div class="card-actions">
-  <a href="/budget/<%= budget._id %>"><button>View Details</button></a>
-  <a href="/budget/<%= budget._id %>/enhanced"><button class="btn-ai">🤖 AI Enhanced</button></a>
-</div>
-</div>
-<% }) %>
-</div>
+
+<!-- Include AI Assistant -->
+<%- include('ai') %>
+
 <%- include('partials/footer') %>

@@ -11,6 +11,7 @@ const budgetSchema = new mongoose.Schema(
     name: { type: String, required: true },
     department: { type: String, required: true },
     state: { type: String, required: true },
+    city: { type: String },
     country: { type: String, required: true },
     totalBudget: { type: Number, required: true },
     spent: { type: Number, default: 0 },
@@ -26,7 +27,12 @@ const budgetSchema = new mongoose.Schema(
     startDate: { type: Date },
     endDate: { type: Date },
     description: { type: String },
-    tags: [{ type: String }]
+    tags: [{ type: String }],
+    authenticityHash: { type: String, unique: true, sparse: true }, // Make it sparse to allow null values
+    aiSummary: { type: String },
+    faq: [{ q: String, a: String }],
+    departmentsCount: { type: Number, default: 0 },
+    projectsCount: { type: Number, default: 0 }
   },
   { timestamps: true }
 );

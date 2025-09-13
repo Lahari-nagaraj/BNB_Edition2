@@ -11,6 +11,7 @@
 <option value="<%= state %>"><%= state %></option>
 <% }) %>
 </select>
+<input type="text" name="city" placeholder="City">
 <input type="text" name="country" placeholder="Country" required>
 <input type="number" name="totalBudget" placeholder="Total Budget" required>
 <input type="text" name="fiscalYear" placeholder="Fiscal Year" required>
@@ -19,7 +20,12 @@
 <option value="Public">Public</option>
 <option value="Private">Private</option>
 </select>
-<button type="submit">Create</button>
+<div class="vendor-section">
+<h3>Assign Vendors (Optional)</h3>
+<input type="text" name="vendorNames" placeholder="Vendor Names (comma-separated)">
+<input type="text" name="vendorEmails" placeholder="Vendor Emails (comma-separated)">
+</div>
+<button type="submit">Create Budget</button>
 </form>
 </div>
 <%- include('partials/footer') %>

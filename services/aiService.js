@@ -2,7 +2,8 @@ const { HfInference } = require('@huggingface/inference');
 
 class AIService {
   constructor() {
-    this.hf = new HfInference(process.env.HUGGINGFACE_API_KEY);
+    this.hf = new HfInference(process.env.HF_TOKEN);
+    this.modelId = process.env.HF_MODEL_ID || 'deepseek-ai/DeepSeek-V3-0324';
   }
 
   // Budget Summary Generator
