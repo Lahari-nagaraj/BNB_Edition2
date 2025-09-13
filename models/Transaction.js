@@ -4,9 +4,9 @@ const crypto = require("crypto");
 const transactionSchema = new mongoose.Schema({
   description: { type: String, required: true },
   amount: { type: Number, required: true },
-  vendorId: { type: mongoose.Schema.Types.ObjectId, ref: "Vendor", required: true },
-  projectId: { type: mongoose.Schema.Types.ObjectId, ref: "Project", required: true },
-  departmentId: { type: mongoose.Schema.Types.ObjectId, ref: "Department", required: true },
+  vendorId: { type: mongoose.Schema.Types.ObjectId, ref: "Vendor" },
+  projectId: { type: mongoose.Schema.Types.ObjectId, ref: "Project" },
+  departmentId: { type: mongoose.Schema.Types.ObjectId, ref: "Department" },
   budgetId: { type: mongoose.Schema.Types.ObjectId, ref: "Budget", required: true },
   status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending" },
   approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
