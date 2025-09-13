@@ -8,6 +8,7 @@
         <a href="/admin/transactions/pending">
           <button style="background: linear-gradient(135deg, #f59e0b, #d97706);">⏳ Pending Transactions</button>
         </a>
+        <button onclick="showGenerateEditorsModal()" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8);">👥 Generate Editors</button>
         <a href="/budget/new">
           <button>➕ Create New Project</button>
         </a>
@@ -32,7 +33,7 @@
         <div>Total Transactions</div>
       </div>
       <div class="stat-card">
-        <div class="stat-number">₹<%= budgets.reduce((sum, b) => sum + b.totalBudget, 0).toLocaleString() %></div>
+        <div class="stat-number amount-display" data-amount="<%= budgets.reduce((sum, b) => sum + b.totalBudget, 0) %>">₹<%= budgets.reduce((sum, b) => sum + b.totalBudget, 0).toLocaleString() %></div>
         <div>Total Budget</div>
       </div>
     </div>
@@ -57,7 +58,7 @@
               <% recentTransactions.slice(0, 10).forEach(transaction => { %>
                 <tr>
                   <td><%= transaction.description %></td>
-                  <td>₹<%= transaction.amount.toLocaleString() %></td>
+                  <td class="amount-display" data-amount="<%= transaction.amount %>">₹<%= transaction.amount.toLocaleString() %></td>
                   <td><%= transaction.budgetName %></td>
                   <td>
                     <span class="status-badge status-<%= transaction.status %>">
@@ -96,7 +97,7 @@
           <p><strong>🏢 Department:</strong> <%= budget.department %></p>
           <p><strong>📍 State:</strong> <%= budget.state %></p>
           <p><strong>🏙️ City:</strong> <%= budget.city || 'N/A' %></p>
-          <p><strong>💰 Total Budget:</strong> ₹<%= budget.totalBudget.toLocaleString() %></p>
+          <p><strong>💰 Total Budget:</strong> <span class="amount-display" data-amount="<%= budget.totalBudget %>">₹<%= budget.totalBudget.toLocaleString() %></span></p>
           <p><strong>📅 Fiscal Year:</strong> <%= budget.fiscalYear %></p>
           <p><strong>✅ Approved By:</strong> <%= budget.approvedBy %></p>
           <p><strong>🏷️ Type:</strong> <%= budget.type %></p>
@@ -127,9 +128,23 @@
           <a href="/budget/<%= budget._id %>"><button>👁️ View</button></a>
           <a href="/budget/<%= budget._id %>/edit"><button>✏️ Edit</button></a>
           <a href="/budget/<%= budget._id %>/departments"><button>🏢 Departments</button></a>
-          <% if (budget.type === 'Public') { %>
-            <a href="/budget/<%= budget._id %>/enhanced"><button class="btn-ai">🤖 AI Enhanced</button></a>
-          <% } %>
+          <a href="/budget/<%= budget._id %>/visualization"><button class="btn-ai">📊 Analytics & Visualization</button></a>
+        </div>
+        
+        <!-- Admin Status Management -->
+        <div class="status-management">
+          <h4>📊 Status Management</h4>
+          <div class="status-controls">
+            <select id="status-<%= budget._id %>" class="status-select">
+              <option value="draft" <%= budget.status === 'draft' ? 'selected' : '' %>>Draft</option>
+              <option value="pending" <%= budget.status === 'pending' ? 'selected' : '' %>>Pending</option>
+              <option value="approved" <%= budget.status === 'approved' ? 'selected' : '' %>>Approved</option>
+              <option value="rejected" <%= budget.status === 'rejected' ? 'selected' : '' %>>Rejected</option>
+              <option value="ongoing" <%= budget.status === 'ongoing' ? 'selected' : '' %>>Ongoing</option>
+              <option value="finished" <%= budget.status === 'finished' ? 'selected' : '' %>>Finished</option>
+            </select>
+            <button onclick="updateBudgetStatus('<%= budget._id %>')" class="btn-update-status">Update Status</button>
+          </div>
         </div>
       </div>
       <% }) %>
@@ -219,6 +234,51 @@
   font-weight: 500;
 }
 
+.status-management {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: rgba(99, 102, 241, 0.05);
+  border-radius: var(--border-radius);
+  border: 1px solid rgba(99, 102, 241, 0.1);
+}
+
+.status-management h4 {
+  margin-bottom: 1rem;
+  color: var(--primary-color);
+  font-size: 1.1rem;
+}
+
+.status-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.status-select {
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  font-size: 0.9rem;
+  min-width: 120px;
+}
+
+.btn-update-status {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: var(--transition);
+}
+
+.btn-update-status:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
 .empty-state {
   text-align: center;
   padding: 4rem 2rem;
@@ -258,6 +318,304 @@ function copyToClipboard(elementId) {
     console.error('Failed to copy: ', err);
     alert('Failed to copy to clipboard');
   });
+}
+
+async function updateBudgetStatus(budgetId) {
+  const statusSelect = document.getElementById(`status-${budgetId}`);
+  const newStatus = statusSelect.value;
+  
+  try {
+    const response = await fetch(`/admin/budget/${budgetId}/status`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ status: newStatus })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      // Update the status badge in the UI
+      const statusBadge = document.querySelector(`[data-budget-id="${budgetId}"] .status-badge`);
+      if (statusBadge) {
+        statusBadge.textContent = newStatus;
+        statusBadge.className = `status-badge status-${newStatus}`;
+      }
+      
+      // Show success message
+      showNotification('Status updated successfully!', 'success');
+    } else {
+      showNotification('Failed to update status', 'error');
+    }
+  } catch (error) {
+    console.error('Error updating status:', error);
+    showNotification('Error updating status', 'error');
+  }
+}
+
+function showNotification(message, type) {
+  // Create notification element
+  const notification = document.createElement('div');
+  notification.className = `notification notification-${type}`;
+  notification.textContent = message;
+  
+  // Style the notification
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 1rem 1.5rem;
+    border-radius: 6px;
+    color: white;
+    font-weight: 500;
+    z-index: 1000;
+    animation: slideIn 0.3s ease-out;
+  `;
+  
+  if (type === 'success') {
+    notification.style.background = 'var(--success-color)';
+  } else {
+    notification.style.background = '#ef4444';
+  }
+  
+  // Add to page
+  document.body.appendChild(notification);
+  
+  // Remove after 3 seconds
+  setTimeout(() => {
+    notification.style.animation = 'slideOut 0.3s ease-in';
+    setTimeout(() => {
+      document.body.removeChild(notification);
+    }, 300);
+  }, 3000);
+}
+
+// Add CSS for notification animations
+const style = document.createElement('style');
+style.textContent = `
+  @keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+  @keyframes slideOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+  }
+`;
+document.head.appendChild(style);
+</script>
+
+<!-- Generate Editors Modal -->
+<div id="generateEditorsModal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>👥 Generate Multiple Editors</h3>
+      <span class="close" onclick="closeGenerateEditorsModal()">&times;</span>
+    </div>
+    <div class="modal-body">
+      <form id="generateEditorsForm">
+        <div class="form-group">
+          <label for="budgetSelect">Select Budget:</label>
+          <select id="budgetSelect" name="budgetId" required>
+            <option value="">Choose a budget...</option>
+            <% budgets.forEach(budget => { %>
+              <option value="<%= budget._id %>"><%= budget.name %> (<%= budget.department %>)</option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="editorCount">Number of Editors to Generate:</label>
+          <input type="number" id="editorCount" name="departmentCount" min="1" max="10" value="3" required>
+        </div>
+        <div class="form-group">
+          <p class="help-text">This will create editors named "Editor 1", "Editor 2", etc. with auto-generated emails and passwords.</p>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button onclick="closeGenerateEditorsModal()" class="btn-secondary">Cancel</button>
+      <button onclick="generateEditors()" class="btn-primary">Generate Editors</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.modal {
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #1e293b;
+}
+
+.close {
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  color: #64748b;
+}
+
+.close:hover {
+  color: #1e293b;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.form-group select,
+.form-group input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.help-text {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.btn-secondary {
+  background: #6b7280;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  background: #4b5563;
+}
+</style>
+
+<script>
+function showGenerateEditorsModal() {
+  document.getElementById('generateEditorsModal').style.display = 'flex';
+}
+
+function closeGenerateEditorsModal() {
+  document.getElementById('generateEditorsModal').style.display = 'none';
+}
+
+async function generateEditors() {
+  const form = document.getElementById('generateEditorsForm');
+  const formData = new FormData(form);
+  const data = Object.fromEntries(formData);
+  
+  if (!data.budgetId || !data.departmentCount) {
+    alert('Please fill in all fields');
+    return;
+  }
+  
+  try {
+    const response = await fetch('/admin/editors/generate-multiple', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data)
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      // Show generated editors info
+      let message = `Successfully generated ${result.editors.length} editors:\n\n`;
+      result.editors.forEach(editor => {
+        message += `• ${editor.name} (${editor.department})\n`;
+        message += `  Email: ${editor.email}\n`;
+        message += `  Password: ${editor.password}\n\n`;
+      });
+      
+      alert(message);
+      closeGenerateEditorsModal();
+      // Refresh the page to show new editors
+      window.location.reload();
+    } else {
+      alert('Error: ' + result.error);
+    }
+  } catch (error) {
+    console.error('Error generating editors:', error);
+    alert('Failed to generate editors. Please try again.');
+  }
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+  const modal = document.getElementById('generateEditorsModal');
+  if (event.target === modal) {
+    closeGenerateEditorsModal();
+  }
 }
 </script>
 

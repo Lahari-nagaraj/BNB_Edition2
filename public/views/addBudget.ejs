@@ -18,26 +18,26 @@
 
 <!-- Government Form Fields -->
 <div id="governmentFields" class="form-section" style="display: none;">
-  <select name="state" required>
+  <select name="govState" id="govState" required>
     <option value="">Select State</option>
     <% states.forEach(state=>{ %>
     <option value="<%= state %>"><%= state %></option>
     <% }) %>
   </select>
-  <input type="text" name="city" placeholder="City">
+  <input type="text" name="govCity" id="govCity" placeholder="City">
   <input type="text" name="country" placeholder="Country" required>
   <input type="text" name="nationality" placeholder="Nationality" required>
 </div>
 
 <!-- College Form Fields -->
 <div id="collegeFields" class="form-section" style="display: none;">
-  <select name="state" required>
+  <select name="collegeState" id="collegeState" required>
     <option value="">Select State</option>
     <% states.forEach(state=>{ %>
     <option value="<%= state %>"><%= state %></option>
     <% }) %>
   </select>
-  <input type="text" name="city" placeholder="City">
+  <input type="text" name="collegeCity" id="collegeCity" placeholder="City">
   <input type="text" name="collegeName" placeholder="College Name" required>
   <input type="text" name="collegeType" placeholder="College Type (e.g., Engineering, Medical)" required>
 </div>
@@ -49,11 +49,6 @@
 <option value="Public">Public</option>
 <option value="Private">Private</option>
 </select>
-<div class="vendor-section">
-<h3>Assign Vendors (Optional)</h3>
-<input type="text" name="vendorNames" placeholder="Vendor Names (comma-separated)">
-<input type="text" name="vendorEmails" placeholder="Vendor Emails (comma-separated)">
-</div>
 <button type="submit">Create Budget</button>
 </form>
 </div>
@@ -110,6 +105,42 @@ function toggleFormFields() {
     collegeAllFields.forEach(field => field.setAttribute('required', 'required'));
   }
 }
+
+// Handle form submission
+function handleFormSubmit(event) {
+  const projectType = document.getElementById('projectType').value;
+  
+  // Create hidden inputs for state and city based on project type
+  const stateInput = document.createElement('input');
+  stateInput.type = 'hidden';
+  stateInput.name = 'state';
+  
+  const cityInput = document.createElement('input');
+  cityInput.type = 'hidden';
+  cityInput.name = 'city';
+  
+  if (projectType === 'government') {
+    stateInput.value = document.getElementById('govState').value;
+    cityInput.value = document.getElementById('govCity').value;
+  } else if (projectType === 'college') {
+    stateInput.value = document.getElementById('collegeState').value;
+    cityInput.value = document.getElementById('collegeCity').value;
+  }
+  
+  // Add hidden inputs to form
+  event.target.appendChild(stateInput);
+  event.target.appendChild(cityInput);
+}
+
+// Initialize form on page load
+document.addEventListener('DOMContentLoaded', function() {
+  // Set default to government to show fields
+  document.getElementById('projectType').value = 'government';
+  toggleFormFields();
+  
+  // Add form submit handler
+  document.getElementById('budgetForm').addEventListener('submit', handleFormSubmit);
+});
 </script>
 
 <%- include('partials/footer') %>

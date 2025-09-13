@@ -29,52 +29,77 @@ class AIService {
 
       let expensesInfo = '';
       if (context && context.transactions && context.transactions.length > 0) {
-        expensesInfo = '\nRecent Transactions:\n' + context.transactions.slice(0, 3).map(transaction => 
+        expensesInfo = '\nRecent Transactions:\n' + context.transactions.slice(0, 5).map(transaction => 
           `- ${transaction.description}: ₹${transaction.amount?.toLocaleString() || 0} (${transaction.category || 'General'}) - ${transaction.status}`
         ).join('\n');
       } else if (budgetData.expenses && budgetData.expenses.length > 0) {
-        expensesInfo = '\nRecent Expenses:\n' + budgetData.expenses.slice(0, 3).map(expense => 
+        expensesInfo = '\nRecent Expenses:\n' + budgetData.expenses.slice(0, 5).map(expense => 
           `- ${expense.description}: ₹${expense.amount?.toLocaleString() || 0} (${expense.category || 'General'})`
         ).join('\n');
       }
 
-      const prompt = `Summarize this budget for non-technical citizens in a clear, concise way.
+      // Enhanced context with more details
+      let projectTypeInfo = '';
+      if (budgetData.projectType) {
+        projectTypeInfo = `\nProject Type: ${budgetData.projectType}`;
+        if (budgetData.projectType === 'college') {
+          projectTypeInfo += `\nCollege: ${budgetData.collegeName || 'N/A'} (${budgetData.collegeType || 'N/A'})`;
+        } else {
+          projectTypeInfo += `\nNationality: ${budgetData.nationality || 'N/A'}`;
+        }
+      }
 
-Budget Data:
-- Name: ${budgetData.name}
-- Department: ${budgetData.department}
-- Total Budget: ₹${budgetData.totalBudget.toLocaleString()}
-- Spent: ₹${budgetData.spent.toLocaleString()}
-- Remaining: ₹${budgetData.remaining.toLocaleString()}
-- Fiscal Year: ${budgetData.fiscalYear}
-- Type: ${budgetData.type}
-- Status: ${budgetData.status}
-- Location: ${budgetData.state}, ${budgetData.city}
-- Approved By: ${budgetData.approvedBy}${departmentsInfo}${vendorsInfo}${expensesInfo}
+      const prompt = `You are a budget transparency expert. Create a clear, citizen-friendly summary of this government budget.
 
-Return JSON format:
+BUDGET INFORMATION:
+Project Name: ${budgetData.name}
+Department: ${budgetData.department}
+Location: ${budgetData.state}, ${budgetData.city}, ${budgetData.country}
+Total Budget: ₹${budgetData.totalBudget.toLocaleString()}
+Amount Spent: ₹${budgetData.spent.toLocaleString()}
+Remaining Amount: ₹${budgetData.remaining.toLocaleString()}
+Fiscal Year: ${budgetData.fiscalYear}
+Budget Type: ${budgetData.type}
+Current Status: ${budgetData.status}
+Approved By: ${budgetData.approvedBy}${projectTypeInfo}${departmentsInfo}${vendorsInfo}${expensesInfo}
+
+Create a summary that helps citizens understand:
+1. What this budget is for
+2. How much money is involved
+3. How it's being used
+4. How to verify the information
+
+Return ONLY valid JSON in this exact format:
 {
-  "headline": "One sentence action-oriented headline",
-  "bullets": ["Bullet 1 (≤12 words)", "Bullet 2 (≤12 words)", "Bullet 3 (≤12 words)"],
+  "headline": "Clear one-line summary of what this budget does",
+  "bullets": [
+    "Key point 1 about budget purpose",
+    "Key point 2 about spending",
+    "Key point 3 about transparency"
+  ],
   "numbers": {
-    "total": "₹X,XXX,XXX",
-    "spent": "₹X,XXX,XXX", 
-    "remaining": "₹X,XXX,XXX"
+    "total": "₹${budgetData.totalBudget.toLocaleString()}",
+    "spent": "₹${budgetData.spent.toLocaleString()}",
+    "remaining": "₹${budgetData.remaining.toLocaleString()}"
   },
-  "verification_tips": ["Tip 1 for verification", "Tip 2 for verification"]
+  "verification_tips": [
+    "How citizens can verify this information",
+    "Where to find more details"
+  ]
 }`;
 
       const response = await this.hf.textGeneration({
         model: 'microsoft/DialoGPT-medium',
         inputs: prompt,
         parameters: {
-          max_new_tokens: 300,
-          temperature: 0.3,
+          max_new_tokens: 400,
+          temperature: 0.2,
           return_full_text: false
         }
       });
 
-      return this.parseJSONResponse(response.generated_text);
+      const result = this.parseJSONResponse(response.generated_text);
+      return result || this.getFallbackSummary(budgetData);
     } catch (error) {
       console.error('Error generating budget summary:', error);
       return this.getFallbackSummary(budgetData);
@@ -156,32 +181,50 @@ Return JSON array:
         }
       }
 
-      const prompt = `Generate 6 short FAQ Q/A pairs for the public about this budget. Questions should be ≤10 words. Answers should be one concise sentence in plain language.
+      let transactionInfo = '';
+      if (context && context.transactions && context.transactions.length > 0) {
+        transactionInfo = '\nRecent Transactions: ' + context.transactions.slice(0, 3).map(t => 
+          `${t.description} (₹${t.amount?.toLocaleString() || 0})`
+        ).join(', ');
+      }
 
-Budget: ${budgetData.name}
+      const prompt = `You are a government transparency expert. Generate 6 FAQ questions and answers about this budget that citizens would ask.
+
+BUDGET DETAILS:
+Project: ${budgetData.name}
 Department: ${budgetData.department}
-Total: ₹${budgetData.totalBudget.toLocaleString()}
-Spent: ₹${budgetData.spent.toLocaleString()}
+Location: ${budgetData.state}, ${budgetData.city}, ${budgetData.country}
+Total Budget: ₹${budgetData.totalBudget.toLocaleString()}
+Amount Spent: ₹${budgetData.spent.toLocaleString()}
 Remaining: ₹${budgetData.remaining.toLocaleString()}
 Fiscal Year: ${budgetData.fiscalYear}
 Status: ${budgetData.status}
-Location: ${budgetData.state}, ${budgetData.city}
-Approved By: ${budgetData.approvedBy}${departmentsInfo}${vendorsInfo}
+Type: ${budgetData.type}
+Approved By: ${budgetData.approvedBy}${departmentsInfo}${vendorsInfo}${transactionInfo}
 
-Return JSON array:
-[{"q": "Question?", "a": "Answer."}, ...]`;
+Create questions that citizens typically ask about government budgets:
+- What is this budget for?
+- How much money is involved?
+- How is it being spent?
+- Who approved it?
+- How can I verify it?
+- What's the current status?
+
+Return ONLY valid JSON array:
+[{"q": "Short question?", "a": "Clear, simple answer."}, ...]`;
 
       const response = await this.hf.textGeneration({
         model: 'microsoft/DialoGPT-medium',
         inputs: prompt,
         parameters: {
-          max_new_tokens: 400,
-          temperature: 0.4,
+          max_new_tokens: 500,
+          temperature: 0.3,
           return_full_text: false
         }
       });
 
-      return this.parseJSONResponse(response.generated_text);
+      const result = this.parseJSONResponse(response.generated_text);
+      return result || this.getFallbackFAQ(budgetData);
     } catch (error) {
       console.error('Error generating FAQ:', error);
       return this.getFallbackFAQ(budgetData);
@@ -202,69 +245,101 @@ Return JSON array:
       });
 
       // Department nodes and links
-      if (hierarchyData.departments) {
+      if (hierarchyData.departments && hierarchyData.departments.length > 0) {
         hierarchyData.departments.forEach(dept => {
           nodes.push({
-            id: `dept_${dept._id}`,
+            id: `dept_${dept._id || dept.name}`,
             name: dept.name,
             type: 'department'
           });
           links.push({
             source: `budget_${hierarchyData._id}`,
-            target: `dept_${dept._id}`,
+            target: `dept_${dept._id || dept.name}`,
             value: dept.allocatedBudget || 100000
           });
 
-          // Project nodes and links
-          if (dept.projects) {
-            dept.projects.forEach(project => {
+          // Vendor nodes and links
+          if (dept.vendors && dept.vendors.length > 0) {
+            dept.vendors.forEach(vendor => {
               nodes.push({
-                id: `project_${project._id}`,
-                name: project.name,
-                type: 'project'
+                id: `vendor_${vendor._id || vendor.name}`,
+                name: vendor.name,
+                type: 'vendor'
               });
               links.push({
-                source: `dept_${dept._id}`,
-                target: `project_${project._id}`,
-                value: project.allocatedBudget || 50000
+                source: `dept_${dept._id || dept.name}`,
+                target: `vendor_${vendor._id || vendor.name}`,
+                value: vendor.allocatedBudget || 25000
               });
-
-              // Vendor nodes and links
-              if (project.vendors) {
-                project.vendors.forEach(vendor => {
-                  nodes.push({
-                    id: `vendor_${vendor._id}`,
-                    name: vendor.name,
-                    type: 'vendor'
-                  });
-                  links.push({
-                    source: `project_${project._id}`,
-                    target: `vendor_${vendor._id}`,
-                    value: vendor.allocatedBudget || 25000
-                  });
-                });
-              }
             });
           }
+        });
+      } else {
+        // If no departments, create sample data for visualization
+        nodes.push({
+          id: 'dept_general',
+          name: 'General Operations',
+          type: 'department'
+        });
+        links.push({
+          source: `budget_${hierarchyData._id}`,
+          target: 'dept_general',
+          value: hierarchyData.totalBudget * 0.6
+        });
+
+        nodes.push({
+          id: 'dept_infrastructure',
+          name: 'Infrastructure',
+          type: 'department'
+        });
+        links.push({
+          source: `budget_${hierarchyData._id}`,
+          target: 'dept_infrastructure',
+          value: hierarchyData.totalBudget * 0.4
         });
       }
 
       // Add transaction data if available
       if (context && context.transactions && context.transactions.length > 0) {
-        context.transactions.forEach((transaction, index) => {
-          const transactionId = `transaction_${index}`;
+        // Group transactions by category
+        const transactionCategories = {};
+        context.transactions.forEach(transaction => {
+          const category = transaction.category || 'General';
+          if (!transactionCategories[category]) {
+            transactionCategories[category] = 0;
+          }
+          transactionCategories[category] += transaction.amount || 0;
+        });
+
+        // Create transaction category nodes
+        Object.entries(transactionCategories).forEach(([category, totalAmount], index) => {
+          const categoryId = `transaction_${category.toLowerCase().replace(/\s+/g, '_')}`;
           nodes.push({
-            id: transactionId,
-            name: transaction.description.substring(0, 20) + '...',
+            id: categoryId,
+            name: `${category} Expenses`,
             type: 'transaction'
           });
           
-          // Link transaction to budget
+          // Link to budget
           links.push({
             source: `budget_${hierarchyData._id}`,
-            target: transactionId,
-            value: transaction.amount || 1000
+            target: categoryId,
+            value: totalAmount
           });
+        });
+      }
+
+      // Ensure we have at least some data for visualization
+      if (nodes.length <= 1) {
+        nodes.push({
+          id: 'expenses_general',
+          name: 'General Expenses',
+          type: 'transaction'
+        });
+        links.push({
+          source: `budget_${hierarchyData._id}`,
+          target: 'expenses_general',
+          value: hierarchyData.spent || 10000
         });
       }
 
