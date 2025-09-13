@@ -8,18 +8,25 @@ const expenseSchema = new mongoose.Schema({
 
 const budgetSchema = new mongoose.Schema(
   {
-    name: String,
-    department: String,
-    state: String,
-    country: String,
-    totalBudget: Number,
-    fiscalYear: String,
-    approvedBy: String,
-    type: String,
-    creator: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    name: { type: String, required: true },
+    department: { type: String, required: true },
+    state: { type: String, required: true },
+    country: { type: String, required: true },
+    totalBudget: { type: Number, required: true },
+    spent: { type: Number, default: 0 },
+    remaining: { type: Number, default: function() { return this.totalBudget - this.spent; } },
+    fiscalYear: { type: String, required: true },
+    approvedBy: { type: String, required: true },
+    type: { type: String, enum: ["Public", "Private"], required: true },
+    status: { type: String, enum: ["draft", "pending", "approved", "rejected", "active", "completed"], default: "draft" },
+    creator: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     editorEmail: String,
     editorPassword: String,
-    expenses: [expenseSchema],
+    expenses: [expenseSchema], // Keep for backward compatibility
+    startDate: { type: Date },
+    endDate: { type: Date },
+    description: { type: String },
+    tags: [{ type: String }]
   },
   { timestamps: true }
 );

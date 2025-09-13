@@ -1,19 +1,228 @@
 <%- include('partials/header') %>
-<h2><%= budget.name %></h2>
-<p>Department: <%= budget.department %></p>
-<p>State: <%= budget.state %></p>
-<p>Country: <%= budget.country %></p>
-<p>Total Budget: <%= budget.totalBudget %></p>
-<p>Fiscal Year: <%= budget.fiscalYear %></p>
-<p>Approved By: <%= budget.approvedBy %></p>
-<p>Type: <%= budget.type %></p>
-<h3>Expenses</h3>
-<ul>
-<% budget.expenses.forEach(e=>{ %>
-<li><strong><%= e.description %></strong> - <%= e.amount %> (Allocated to: <%= e.allocatedTo %>)</li>
-<% }) %>
-</ul>
-<% if(session.userId && session.userId.toString() === budget.creator._id.toString()){ %>
-<a href="/budget/<%= budget._id %>/edit"><button>Edit Budget</button></a>
-<% } %>
+<div class="container">
+  <div class="budget-header">
+    <h2><%= budget.name %></h2>
+    <span class="status-badge status-<%= budget.status %>"><%= budget.status %></span>
+  </div>
+  
+  <div class="budget-info">
+    <div class="info-grid">
+      <div class="info-item">
+        <strong>Department:</strong> <%= budget.department %>
+      </div>
+      <div class="info-item">
+        <strong>State:</strong> <%= budget.state %>
+      </div>
+      <div class="info-item">
+        <strong>Country:</strong> <%= budget.country %>
+      </div>
+      <div class="info-item">
+        <strong>Total Budget:</strong> ₹<%= budget.totalBudget.toLocaleString() %>
+      </div>
+      <div class="info-item">
+        <strong>Spent:</strong> ₹<%= budget.spent.toLocaleString() %>
+      </div>
+      <div class="info-item">
+        <strong>Remaining:</strong> ₹<%= budget.remaining.toLocaleString() %>
+      </div>
+      <div class="info-item">
+        <strong>Fiscal Year:</strong> <%= budget.fiscalYear %>
+      </div>
+      <div class="info-item">
+        <strong>Approved By:</strong> <%= budget.approvedBy %>
+      </div>
+      <div class="info-item">
+        <strong>Type:</strong> <%= budget.type %>
+      </div>
+    </div>
+    
+    <div class="progress-section">
+      <h3>Budget Utilization</h3>
+      <div class="progress-bar large">
+        <div class="progress-fill" style="width: <%= (budget.spent / budget.totalBudget * 100) %>%"></div>
+      </div>
+      <p class="progress-text"><%= ((budget.spent / budget.totalBudget) * 100).toFixed(1) %>% utilized</p>
+    </div>
+  </div>
+
+  <div class="hierarchy-section">
+    <h3>Fund Flow Hierarchy</h3>
+    <div class="hierarchy-flow">
+      <div class="hierarchy-item">
+        <h4>📊 Budget</h4>
+        <p><%= budget.name %></p>
+        <p>₹<%= budget.totalBudget.toLocaleString() %></p>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="hierarchy-item">
+        <h4>🏢 Departments</h4>
+        <p>Manage departmental allocations</p>
+        <a href="/budget/<%= budget._id %>/departments"><button>View Departments</button></a>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="hierarchy-item">
+        <h4>📋 Projects</h4>
+        <p>Track project-specific spending</p>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="hierarchy-item">
+        <h4>🏪 Vendors</h4>
+        <p>Manage vendor relationships</p>
+      </div>
+      <div class="arrow">↓</div>
+      <div class="hierarchy-item">
+        <h4>💰 Transactions</h4>
+        <p>Individual expense tracking</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions-section">
+    <% if(session.userId && session.userId.toString() === budget.creator._id.toString()){ %>
+    <a href="/budget/<%= budget._id %>/edit"><button>Edit Budget</button></a>
+    <a href="/budget/<%= budget._id %>/departments"><button class="btn-primary">Manage Departments</button></a>
+    <% } %>
+    <% if(session.isAdmin && budget.status === 'pending'){ %>
+    <form method="post" action="/budget/<%= budget._id %>/approve" style="display: inline;">
+      <button type="submit" class="btn-approve">Approve Budget</button>
+    </form>
+    <% } %>
+  </div>
+
+  <!-- Legacy expenses section for backward compatibility -->
+  <% if(budget.expenses && budget.expenses.length > 0) { %>
+  <div class="legacy-expenses">
+    <h3>Legacy Expenses</h3>
+    <ul>
+    <% budget.expenses.forEach(e=>{ %>
+    <li><strong><%= e.description %></strong> - ₹<%= e.amount.toLocaleString() %> (Allocated to: <%= e.allocatedTo %>)</li>
+    <% }) %>
+    </ul>
+  </div>
+  <% } %>
+</div>
+
+<style>
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.budget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.info-item {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+}
+
+.progress-section {
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  margin-bottom: 2rem;
+}
+
+.progress-bar.large {
+  height: 20px;
+  background: #e9ecef;
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 1rem 0;
+}
+
+.progress-text {
+  text-align: center;
+  font-weight: bold;
+  color: #007bff;
+}
+
+.hierarchy-section {
+  background: #fff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  margin-bottom: 2rem;
+}
+
+.hierarchy-flow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.hierarchy-item {
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 12px;
+  text-align: center;
+  min-width: 200px;
+  border: 2px solid #e9ecef;
+}
+
+.hierarchy-item h4 {
+  margin-bottom: 0.5rem;
+  color: #007bff;
+}
+
+.arrow {
+  font-size: 2rem;
+  color: #007bff;
+  font-weight: bold;
+}
+
+.actions-section {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+
+.btn-primary {
+  background: #007bff;
+  color: white;
+}
+
+.btn-approve {
+  background: #28a745;
+  color: white;
+}
+
+.legacy-expenses {
+  background: #fff3cd;
+  padding: 1.5rem;
+  border-radius: 12px;
+  border-left: 4px solid #ffc107;
+}
+
+@media (max-width: 768px) {
+  .hierarchy-flow {
+    flex-direction: column;
+  }
+  
+  .arrow {
+    transform: rotate(90deg);
+  }
+  
+  .actions-section {
+    flex-direction: column;
+  }
+}
+</style>
+
 <%- include('partials/footer') %>

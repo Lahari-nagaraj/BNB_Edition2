@@ -1,7 +1,7 @@
 <%- include('partials/header') %>
 <div class="hero">
 <h2>Available Public Budgets</h2>
-<form method="get" style="margin-top:1rem;">
+<form method="get" style="margin-top:1rem;" class="filter-form">
 <input type="text" name="q" placeholder="Search by name" value="<%= searchQuery %>">
 <select name="userState">
 <option value="">All States</option>
@@ -9,17 +9,37 @@
 <option value="<%= state %>" <%= userState === state ? 'selected' : '' %>><%= state %></option>
 <% }) %>
 </select>
-
+<select name="department">
+<option value="">All Departments</option>
+<% departments.forEach(dept => { %>
+<option value="<%= dept %>" <%= department === dept ? 'selected' : '' %>><%= dept %></option>
+<% }) %>
+</select>
+<select name="budgetType">
+<option value="">All Types</option>
+<option value="Public" <%= budgetType === 'Public' ? 'selected' : '' %>>Public</option>
+<option value="Private" <%= budgetType === 'Private' ? 'selected' : '' %>>Private</option>
+</select>
 <button type="submit">Filter</button>
 </form>
 </div>
 <div class="cards">
 <% budgets.forEach(budget=>{ %>
 <div class="card">
+<div class="card-header">
 <h3><%= budget.name %></h3>
-<p>Department: <%= budget.department %></p>
-<p>State: <%= budget.state %></p>
-<a href="/budget/<%= budget._id %>"><button>View</button></a>
+<span class="status-badge status-<%= budget.status %>"><%= budget.status %></span>
+</div>
+<p><strong>Department:</strong> <%= budget.department %></p>
+<p><strong>State:</strong> <%= budget.state %></p>
+<p><strong>Total Budget:</strong> ₹<%= budget.totalBudget.toLocaleString() %></p>
+<p><strong>Fiscal Year:</strong> <%= budget.fiscalYear %></p>
+<p><strong>Type:</strong> <%= budget.type %></p>
+<div class="progress-bar">
+<div class="progress-fill" style="width: <%= (budget.spent / budget.totalBudget * 100) %>%"></div>
+</div>
+<p class="spending-info">Spent: ₹<%= budget.spent.toLocaleString() %> | Remaining: ₹<%= budget.remaining.toLocaleString() %></p>
+<a href="/budget/<%= budget._id %>"><button>View Details</button></a>
 </div>
 <% }) %>
 </div>
