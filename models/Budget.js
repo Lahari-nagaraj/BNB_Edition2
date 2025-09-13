@@ -26,6 +26,13 @@ const budgetSchema = new mongoose.Schema(
     state: { type: String, required: true },
     city: { type: String },
     country: { type: String, required: true },
+    // Project Type Fields
+    projectType: { type: String, enum: ["government", "college"], default: "government" },
+    // Government specific fields
+    nationality: { type: String },
+    // College specific fields
+    collegeName: { type: String },
+    collegeType: { type: String },
     totalBudget: { type: Number, required: true },
     spent: { type: Number, default: 0 },
     remaining: { type: Number, default: function() { return this.totalBudget - this.spent; } },

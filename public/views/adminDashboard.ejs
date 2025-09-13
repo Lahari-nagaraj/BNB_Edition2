@@ -4,9 +4,14 @@
   <div class="dashboard-section">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
       <h3>🏛️ Admin Dashboard</h3>
-      <a href="/budget/new">
-        <button>➕ Create New Project</button>
-      </a>
+      <div style="display: flex; gap: 1rem;">
+        <a href="/admin/transactions/pending">
+          <button style="background: linear-gradient(135deg, #f59e0b, #d97706);">⏳ Pending Transactions</button>
+        </a>
+        <a href="/budget/new">
+          <button>➕ Create New Project</button>
+        </a>
+      </div>
     </div>
 
     <div class="stats-grid">
@@ -23,8 +28,58 @@
         <div>Active Editors</div>
       </div>
       <div class="stat-card">
+        <div class="stat-number"><%= stats.totalTransactions %></div>
+        <div>Total Transactions</div>
+      </div>
+      <div class="stat-card">
         <div class="stat-number">₹<%= budgets.reduce((sum, b) => sum + b.totalBudget, 0).toLocaleString() %></div>
         <div>Total Budget</div>
+      </div>
+    </div>
+
+    <!-- Recent Transactions Section -->
+    <div class="recent-transactions-section">
+      <h3>💰 Recent Transactions</h3>
+      <div class="transactions-table">
+        <% if(recentTransactions && recentTransactions.length > 0) { %>
+          <table>
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th>Amount</th>
+                <th>Budget</th>
+                <th>Status</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% recentTransactions.slice(0, 10).forEach(transaction => { %>
+                <tr>
+                  <td><%= transaction.description %></td>
+                  <td>₹<%= transaction.amount.toLocaleString() %></td>
+                  <td><%= transaction.budgetName %></td>
+                  <td>
+                    <span class="status-badge status-<%= transaction.status %>">
+                      <%= transaction.status %>
+                    </span>
+                  </td>
+                  <td><%= new Date(transaction.createdAt).toLocaleDateString() %></td>
+                  <td>
+                    <a href="/budget/<%= transaction.budgetId %>" class="btn-small">View</a>
+                    <% if(transaction.status === 'pending') { %>
+                      <a href="/admin/transactions/pending" class="btn-small btn-warning">Review</a>
+                    <% } %>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        <% } else { %>
+          <div class="no-transactions">
+            <p>No recent transactions found.</p>
+          </div>
+        <% } %>
       </div>
     </div>
 

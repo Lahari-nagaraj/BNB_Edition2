@@ -567,7 +567,19 @@ function refreshData() {
 }
 
 function exportData() {
-  // This would generate and download a report
+  const budgetId = '<%= budget._id %>';
+  const budgetName = '<%= budget.name %>';
+  
+  // Create download link
+  const link = document.createElement('a');
+  link.href = `/api/budget/${budgetId}/export`;
+  link.download = `budget-report-${budgetName.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.json`;
+  
+  // Trigger download
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
   console.log('Exporting data...');
 }
 </script>
