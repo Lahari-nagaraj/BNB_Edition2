@@ -39,7 +39,10 @@
 <div class="progress-fill" style="width: <%= (budget.spent / budget.totalBudget * 100) %>%"></div>
 </div>
 <p class="spending-info">Spent: ₹<%= budget.spent.toLocaleString() %> | Remaining: ₹<%= budget.remaining.toLocaleString() %></p>
-<a href="/budget/<%= budget._id %>"><button>View Details</button></a>
+<div class="card-actions">
+  <a href="/budget/<%= budget._id %>"><button>View Details</button></a>
+  <a href="/budget/<%= budget._id %>/enhanced"><button class="btn-ai">🤖 AI Enhanced</button></a>
+</div>
 </div>
 <% }) %>
 </div>

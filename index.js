@@ -12,6 +12,8 @@ const Project = require("./models/Project");
 const Vendor = require("./models/Vendor");
 const Transaction = require("./models/Transaction");
 const AuditLog = require("./models/AuditLog");
+const aiService = require("./services/aiService");
+const visualizationService = require("./services/visualizationService");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -510,6 +512,205 @@ app.post("/budget/:id/approve", async (req, res) => {
   await auditLog("approve", "Budget", budget._id, budget.name, req, oldData, budget.toObject());
   
   res.redirect(`/budget/${budget._id}`);
+});
+
+// AI-POWERED FEATURES
+
+// Budget Summary API
+app.get("/api/budget/:id/summary", async (req, res) => {
+  try {
+    const budget = await Budget.findById(req.params.id);
+    if (!budget) return res.status(404).json({ error: "Budget not found" });
+    
+    const summary = await aiService.generateBudgetSummary(budget);
+    res.json(summary);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to generate summary" });
+  }
+});
+
+// Transaction Classification API
+app.post("/api/transaction/:id/classify", async (req, res) => {
+  try {
+    const transaction = await Transaction.findById(req.params.id).populate('budgetId');
+    if (!transaction) return res.status(404).json({ error: "Transaction not found" });
+    
+    const classification = await aiService.classifyTransaction(transaction, transaction.budgetId);
+    res.json(classification);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to classify transaction" });
+  }
+});
+
+// FAQ Generation API
+app.get("/api/budget/:id/faq", async (req, res) => {
+  try {
+    const budget = await Budget.findById(req.params.id);
+    if (!budget) return res.status(404).json({ error: "Budget not found" });
+    
+    const faq = await aiService.generateFAQ(budget);
+    res.json(faq);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to generate FAQ" });
+  }
+});
+
+// Sankey Data API
+app.get("/api/budget/:id/sankey", async (req, res) => {
+  try {
+    const budget = await Budget.findById(req.params.id)
+      .populate({
+        path: 'departments',
+        populate: {
+          path: 'projects',
+          populate: {
+            path: 'vendors'
+          }
+        }
+      });
+    
+    if (!budget) return res.status(404).json({ error: "Budget not found" });
+    
+    const sankeyData = await aiService.generateSankeyData(budget);
+    res.json(sankeyData);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to generate Sankey data" });
+  }
+});
+
+// Chatbot API
+app.post("/api/chatbot", async (req, res) => {
+  try {
+    const { message, context } = req.body;
+    const response = await aiService.generateChatbotResponse(message, context);
+    res.json({ response });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to generate chatbot response" });
+  }
+});
+
+// QR Code Generation API
+app.get("/api/transaction/:id/qr", async (req, res) => {
+  try {
+    const transaction = await Transaction.findById(req.params.id);
+    if (!transaction) return res.status(404).json({ error: "Transaction not found" });
+    
+    const qrCode = await visualizationService.generateQRCode(transaction.transactionHash);
+    res.json({ qrCode });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to generate QR code" });
+  }
+});
+
+// Chart Data APIs
+app.get("/api/budget/:id/charts/spending", async (req, res) => {
+  try {
+    const budget = await Budget.findById(req.params.id);
+    if (!budget) return res.status(404).json({ error: "Budget not found" });
+    
+    const chartConfig = visualizationService.generateSpendingChart(budget);
+    res.json(chartConfig);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to generate spending chart" });
+  }
+});
+
+app.get("/api/budget/:id/charts/departments", async (req, res) => {
+  try {
+    const departments = await Department.find({ budgetId: req.params.id });
+    const chartConfig = visualizationService.generateDepartmentChart(departments);
+    res.json(chartConfig);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to generate department chart" });
+  }
+});
+
+app.get("/api/budget/:id/charts/timeline", async (req, res) => {
+  try {
+    const transactions = await Transaction.find({ budgetId: req.params.id });
+    const chartConfig = visualizationService.generateTimelineChart(transactions);
+    res.json(chartConfig);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to generate timeline chart" });
+  }
+});
+
+// Public Verification Page
+app.get("/verify/:hash", async (req, res) => {
+  try {
+    const transaction = await Transaction.findOne({ transactionHash: req.params.hash })
+      .populate('budgetId')
+      .populate('departmentId')
+      .populate('projectId')
+      .populate('vendorId');
+    
+    if (!transaction) {
+      return res.render("verification", { 
+        title: "Transaction Verification", 
+        transaction: null, 
+        error: "Transaction not found" 
+      });
+    }
+    
+    res.render("verification", { 
+      title: "Transaction Verification", 
+      transaction, 
+      error: null 
+    });
+  } catch (error) {
+    console.error(error);
+    res.render("verification", { 
+      title: "Transaction Verification", 
+      transaction: null, 
+      error: "Verification failed" 
+    });
+  }
+});
+
+// Enhanced Budget Details with AI Features
+app.get("/budget/:id/enhanced", async (req, res) => {
+  try {
+    const budget = await Budget.findById(req.params.id)
+      .populate("creator")
+      .populate({
+        path: 'departments',
+        populate: {
+          path: 'projects',
+          populate: {
+            path: 'vendors'
+          }
+        }
+      });
+    
+    if (!budget) return res.status(404).send("Budget not found");
+    
+    // Generate AI-powered content
+    const [summary, faq, sankeyData] = await Promise.all([
+      aiService.generateBudgetSummary(budget),
+      aiService.generateFAQ(budget),
+      aiService.generateSankeyData(budget)
+    ]);
+    
+    res.render("enhancedBudgetDetails", { 
+      title: budget.name, 
+      budget, 
+      summary, 
+      faq, 
+      sankeyData 
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server Error");
+  }
 });
 
 app.listen(PORT, () =>
