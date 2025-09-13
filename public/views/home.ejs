@@ -6,7 +6,16 @@
 
   <!-- Filter Form -->
   <form method="get" class="filter-form" id="searchForm">
-    <input type="text" name="q" placeholder="🔍 Search by name, department, state, or city..." value="<%= searchQuery %>" id="searchInput">
+    <input type="text" name="q" placeholder="🔍 Search by name, department, state, or city... (spelling mistakes OK!)" value="<%= searchQuery %>" id="searchInput">
+
+    <select name="status">
+      <option value="">📊 All Status</option>
+      <option value="draft" <%= status==='draft' ? 'selected':'' %>>📝 Draft</option>
+      <option value="pending" <%= status==='pending' ? 'selected':'' %>>⏳ Pending</option>
+      <option value="approved" <%= status==='approved' ? 'selected':'' %>>✅ Approved</option>
+      <option value="active" <%= status==='active' ? 'selected':'' %>>🟢 Active</option>
+      <option value="completed" <%= status==='completed' ? 'selected':'' %>>🏁 Completed</option>
+    </select>
 
     <select name="state" id="stateSelect">
       <option value="">📍 All States</option>
@@ -29,24 +38,25 @@
       <% }) %>
     </select>
 
-
     <button type="submit">🔍 Search</button>
     <button type="button" onclick="clearFilters()">🗑️ Clear</button>
   </form>
 </div>
 
 <!-- Search Results Info -->
-<% if (searchQuery || userState || userCity || department) { %>
+<% if (searchQuery || userState || userCity || department || status) { %>
   <div class="search-results-info <%= budgets.length === 0 ? 'no-results' : '' %>">
     <% if (budgets.length > 0) { %>
       <strong>🔍 Found <%= budgets.length %> budget<%= budgets.length !== 1 ? 's' : '' %></strong>
       <% if (searchQuery) { %> for "<%= searchQuery %>"<% } %>
+      <% if (status) { %> with status "<%= status %>"<% } %>
       <% if (userState) { %> in <%= userState %><% } %>
       <% if (userCity) { %>, <%= userCity %><% } %>
       <% if (department) { %> from <%= department %> department<% } %>
     <% } else { %>
       <strong>❌ No budgets found</strong>
       <% if (searchQuery) { %> for "<%= searchQuery %>"<% } %>
+      <% if (status) { %> with status "<%= status %>"<% } %>
       <% if (userState) { %> in <%= userState %><% } %>
       <% if (userCity) { %>, <%= userCity %><% } %>
       <% if (department) { %> from <%= department %> department<% } %>
@@ -77,17 +87,17 @@
     <div class="budget-info">
       <p><strong>🏢 Department:</strong> <%= budget.department %></p>
       <p><strong>📍 State:</strong> <%= budget.state %></p>
-      <p><strong>💰 Total:</strong> ₹<%= budget.totalBudget.toLocaleString() %></p>
+      <p><strong>💰 Total:</strong> <span class="amount-display" data-amount="<%= budget.totalBudget %>">₹<%= budget.totalBudget.toLocaleString() %></span></p>
       <p><strong>📅 Year:</strong> <%= budget.fiscalYear %></p>
     </div>
 
     <div class="progress-section">
       <div class="progress-bar">
-        <div class="progress-fill" style="width: <%= (budget.spent/budget.totalBudget*100) %>%"></div>
+        <div class="progress-fill" style="width: <%= Math.min(100, (budget.spent/budget.totalBudget*100)) %>%"></div>
       </div>
       <p class="spending-info">
-        <span class="spent">Spent: ₹<%= budget.spent.toLocaleString() %></span>
-        <span class="remaining">Remaining: ₹<%= budget.remaining.toLocaleString() %></span>
+        <span class="spent">Spent: <span class="amount-display" data-amount="<%= budget.spent %>">₹<%= budget.spent.toLocaleString() %></span></span>
+        <span class="remaining">Remaining: <span class="amount-display" data-amount="<%= budget.remaining %>">₹<%= budget.remaining.toLocaleString() %></span></span>
       </p>
     </div>
 
@@ -96,9 +106,94 @@
       <a href="/budget/<%= budget._id %>/enhanced"><button class="btn-ai">🤖 AI Enhanced</button></a>
       <button class="btn-verify" onclick="showBudgetVerification('<%= budget._id %>')">🔍 Verify</button>
     </div>
+    <div class="budget-links">
+      <a href="/budgets/state/<%= budget.state %>" class="link-state">📍 <%= budget.state %></a>
+      <a href="/budgets/department/<%= budget.department %>" class="link-department">🏢 <%= budget.department %></a>
+    </div>
+    
+    <!-- Recent Transactions for this Budget -->
+    <div class="budget-transactions">
+      <h4>💰 Recent Transactions</h4>
+      <% if(budget.recentTransactions && budget.recentTransactions.length > 0) { %>
+        <div class="mini-transactions">
+          <% budget.recentTransactions.slice(0, 3).forEach(transaction => { %>
+            <div class="mini-transaction">
+              <div class="transaction-info">
+                <span class="transaction-desc"><%= transaction.description %></span>
+                <span class="transaction-amount amount-display" data-amount="<%= transaction.amount %>">₹<%= transaction.amount.toLocaleString() %></span>
+              </div>
+              <div class="transaction-meta">
+                <span class="transaction-status status-<%= transaction.status %>"><%= transaction.status %></span>
+                <div class="transaction-icons">
+                  <% if(transaction.receipt && transaction.receipt.url) { %>
+                    <a href="<%= transaction.receipt.url %>" target="_blank" class="receipt-link">📄</a>
+                  <% } %>
+                  <% if(transaction.blockchainId) { %>
+                    <span class="blockchain-mini" title="Blockchain Verified">⛓️</span>
+                  <% } %>
+                </div>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+        <div class="view-all-transactions">
+          <a href="/budget/<%= budget._id %>" class="btn-view-all">View All Transactions</a>
+        </div>
+      <% } else { %>
+        <div class="no-transactions">
+          <p>No transactions yet</p>
+        </div>
+      <% } %>
+    </div>
   </div>
   <% }) %>
 </div>
+
+
+<!-- Pagination -->
+<% if (pagination && pagination.totalPages > 1) { %>
+<div class="pagination-container">
+  <div class="pagination-info">
+    <p>Showing <%= ((pagination.currentPage - 1) * 8) + 1 %>-<%= Math.min(pagination.currentPage * 8, pagination.totalBudgets) %> of <%= pagination.totalBudgets %> budgets</p>
+  </div>
+  
+  <div class="pagination">
+    <% if (pagination.hasPrev) { %>
+      <a href="?<%= new URLSearchParams({...req.query, page: pagination.prevPage}).toString() %>" class="pagination-btn prev-btn">← Previous</a>
+    <% } %>
+    
+    <div class="pagination-numbers">
+      <% 
+        const startPage = Math.max(1, pagination.currentPage - 2);
+        const endPage = Math.min(pagination.totalPages, pagination.currentPage + 2);
+      %>
+      
+      <% if (startPage > 1) { %>
+        <a href="?<%= new URLSearchParams({...req.query, page: 1}).toString() %>" class="pagination-number">1</a>
+        <% if (startPage > 2) { %>
+          <span class="pagination-ellipsis">...</span>
+        <% } %>
+      <% } %>
+      
+      <% for (let i = startPage; i <= endPage; i++) { %>
+        <a href="?<%= new URLSearchParams({...req.query, page: i}).toString() %>" 
+           class="pagination-number <%= i === pagination.currentPage ? 'active' : '' %>"><%= i %></a>
+      <% } %>
+      
+      <% if (endPage < pagination.totalPages) { %>
+        <% if (endPage < pagination.totalPages - 1) { %>
+          <span class="pagination-ellipsis">...</span>
+        <% } %>
+        <a href="?<%= new URLSearchParams({...req.query, page: pagination.totalPages}).toString() %>" class="pagination-number"><%= pagination.totalPages %></a>
+      <% } %>
+    </div>
+    
+    <% if (pagination.hasNext) { %>
+      <a href="?<%= new URLSearchParams({...req.query, page: pagination.nextPage}).toString() %>" class="pagination-btn next-btn">Next →</a>
+    <% } %>
+  </div>
+</div>
+<% } %>
 
 <!-- Include AI Assistant -->
 <%- include('ai') %>
@@ -209,6 +304,15 @@ document.addEventListener('click', function(e) {
     closeVerification();
   }
 });
+
+function clearFilters() {
+  document.getElementById('searchInput').value = '';
+  document.getElementById('stateSelect').value = '';
+  document.getElementById('citySelect').value = '';
+  document.querySelector('select[name="department"]').value = '';
+  document.querySelector('select[name="status"]').value = '';
+  document.getElementById('searchForm').submit();
+}
 </script>
 
 <%- include('partials/footer') %>

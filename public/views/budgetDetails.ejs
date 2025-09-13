@@ -2,13 +2,16 @@
 <div class="container">
   <div class="budget-header">
     <h2><%= budget.name %></h2>
-    <div class="status-badges">
-      <span class="status-badge status-<%= budget.status %>"><%= budget.status %></span>
-      <% if(budget.type === 'Public') { %>
-        <span class="type-badge type-public">Public</span>
-      <% } else { %>
-        <span class="type-badge type-private">Private</span>
-      <% } %>
+    <div class="header-actions">
+      <button onclick="exportBudgetReport()" class="btn-export">📥 Export Report</button>
+      <div class="status-badges">
+        <span class="status-badge status-<%= budget.status %>"><%= budget.status %></span>
+        <% if(budget.type === 'Public') { %>
+          <span class="type-badge type-public">Public</span>
+        <% } else { %>
+          <span class="type-badge type-private">Private</span>
+        <% } %>
+      </div>
     </div>
   </div>
   
@@ -46,7 +49,7 @@
     <div class="progress-section">
       <h3>Budget Utilization</h3>
       <div class="progress-bar large">
-        <div class="progress-fill" style="width: <%= (budget.spent / budget.totalBudget * 100) %>%"></div>
+        <div class="progress-fill" style="width: <%= Math.min(100, (budget.spent / budget.totalBudget * 100)) %>%"></div>
       </div>
       <p class="progress-text"><%= ((budget.spent / budget.totalBudget) * 100).toFixed(1) %>% utilized</p>
     </div>
@@ -110,77 +113,92 @@
     <% } %>
   </div>
 
-  <!-- Receipt Upload Section -->
-  <% if(canEdit) { %>
-  <div class="receipt-upload-section">
-    <h3>📄 Add Expense with Receipt</h3>
-    <form id="expenseForm" enctype="multipart/form-data">
-      <div class="form-row">
-        <div class="form-group">
-          <label for="description">Description *</label>
-          <input type="text" id="description" name="description" required placeholder="Enter expense description">
-        </div>
-        <div class="form-group">
-          <label for="amount">Amount (₹) *</label>
-          <input type="number" id="amount" name="amount" step="0.01" required placeholder="0.00">
-        </div>
-      </div>
-      
-      <div class="form-row">
-        <div class="form-group">
-          <label for="category">Category</label>
-          <select id="category" name="category">
-            <option value="">Select category...</option>
-            <option value="office_supplies">Office Supplies</option>
-            <option value="travel">Travel</option>
-            <option value="equipment">Equipment</option>
-            <option value="utilities">Utilities</option>
-            <option value="maintenance">Maintenance</option>
-            <option value="other">Other</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label for="vendor">Vendor/Supplier</label>
-          <input type="text" id="vendor" name="vendor" placeholder="Enter vendor name">
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label for="receipt">Receipt Upload</label>
-        <div class="file-upload-area" id="fileUploadArea">
-          <div class="upload-icon">📁</div>
-          <p>Drop receipt here or click to browse</p>
-          <input type="file" id="receipt" name="receipt" accept="image/*,.pdf" style="display: none;">
-          <button type="button" onclick="document.getElementById('receipt').click()">Choose File</button>
-        </div>
-        <div class="file-preview" id="filePreview" style="display: none;">
-          <img id="previewImage" src="" alt="Receipt Preview">
-          <div class="file-info">
-            <h4 id="fileName"></h4>
-            <p id="fileSize"></p>
-            <button type="button" onclick="removeFile()">Remove</button>
+  <!-- Transactions Section -->
+  <div class="transactions-section">
+    <h3>💰 All Transactions</h3>
+    <% if(transactions && transactions.length > 0) { %>
+    <div class="transactions-list">
+      <% transactions.forEach(transaction => { %>
+      <div class="transaction-card">
+        <div class="transaction-header">
+          <div class="transaction-info">
+            <h4><%= transaction.description %></h4>
+            <div class="transaction-meta">
+              <span class="transaction-date">📅 <%= new Date(transaction.createdAt).toLocaleDateString() %></span>
+              <span class="transaction-amount">₹<%= transaction.amount.toLocaleString() %></span>
+            </div>
+          </div>
+          <div class="transaction-status">
+            <span class="status-badge status-<%= transaction.status %>"><%= transaction.status %></span>
           </div>
         </div>
+        
+        <div class="transaction-details">
+          <% if(transaction.category) { %>
+          <div class="detail-item">
+            <strong>Category:</strong> <span class="category-badge category-<%= transaction.category %>"><%= transaction.category %></span>
+          </div>
+          <% } %>
+          
+          <% if(transaction.notes) { %>
+          <div class="detail-item">
+            <strong>Notes:</strong> <%= transaction.notes %>
+          </div>
+          <% } %>
+          
+          <div class="detail-item">
+            <strong>Created by:</strong> <%= transaction.createdBy ? transaction.createdBy.name : 'Unknown' %>
+          </div>
+          
+          <% if(transaction.approvedBy) { %>
+          <div class="detail-item">
+            <strong>Approved by:</strong> <%= transaction.approvedBy.name %>
+            <br><strong>Approved on:</strong> <%= new Date(transaction.approvedAt).toLocaleDateString() %>
+          </div>
+          <% } %>
+        </div>
+        
+        <% if(transaction.receipt && transaction.receipt.url) { %>
+        <div class="transaction-receipt">
+          <h5>📄 Receipt</h5>
+          <div class="receipt-preview">
+            <img src="<%= transaction.receipt.url %>" alt="Receipt" class="receipt-thumbnail">
+            <div class="receipt-info">
+              <p><strong>File:</strong> <%= transaction.receipt.filename || 'Receipt' %></p>
+              <a href="<%= transaction.receipt.url %>" target="_blank" class="receipt-link">View Full Receipt</a>
+            </div>
+          </div>
+        </div>
+        <% } %>
+        
+        <div class="transaction-hash">
+          <strong>Transaction Hash:</strong>
+          <code class="hash-code"><%= transaction.transactionHash %></code>
+        </div>
+        <% if(transaction.blockchainId) { %>
+        <div class="blockchain-info">
+          <div class="blockchain-badge">
+            <span class="blockchain-icon">⛓️</span>
+            <span class="blockchain-text">Blockchain Verified</span>
+          </div>
+          <div class="blockchain-details">
+            <p><strong>Block Hash:</strong> <code class="block-hash"><%= transaction.blockHash %></code></p>
+            <p><strong>Block Index:</strong> <%= transaction.blockIndex %></p>
+            <p><strong>Blockchain ID:</strong> <code class="blockchain-id"><%= transaction.blockchainId %></code></p>
+          </div>
+        </div>
+        <% } %>
       </div>
-
-      <div class="form-group">
-        <label for="notes">Notes</label>
-        <textarea id="notes" name="notes" rows="3" placeholder="Additional notes..."></textarea>
-      </div>
-
-      <div class="ocr-section" id="ocrSection" style="display: none;">
-        <h4>🤖 OCR Extracted Data</h4>
-        <div class="ocr-results" id="ocrResults"></div>
-        <button type="button" onclick="useOCRData()" class="btn-ai">Use OCR Data</button>
-      </div>
-
-      <div class="form-actions">
-        <button type="submit" id="submitBtn">Add Expense</button>
-        <button type="button" onclick="clearForm()" class="btn-secondary">Clear</button>
-      </div>
-    </form>
+      <% }) %>
+    </div>
+    <% } else { %>
+    <div class="no-transactions">
+      <div class="empty-icon">📋</div>
+      <h4>No transactions yet</h4>
+      <p>Transactions will appear here once they are added to this budget.</p>
+    </div>
+    <% } %>
   </div>
-  <% } %>
 
   <!-- Legacy expenses section for backward compatibility -->
   <% if(budget.expenses && budget.expenses.length > 0) { %>
@@ -207,6 +225,29 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.btn-export {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-light);
+}
+
+.btn-export:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-medium);
 }
 
 .status-badges {
@@ -367,13 +408,232 @@
   border-left: 4px solid #ffc107;
 }
 
-/* Receipt Upload Styles */
-.receipt-upload-section {
+/* Transactions Section Styles */
+.transactions-section {
   background: #fff;
   padding: 2rem;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.05);
   margin-bottom: 2rem;
+}
+
+.transactions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.transaction-card {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border-left: 4px solid #007bff;
+  transition: all 0.3s ease;
+}
+
+.transaction-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.transaction-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.transaction-info h4 {
+  margin: 0 0 0.5rem 0;
+  color: #1e293b;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.transaction-meta {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.transaction-date {
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.transaction-amount {
+  font-weight: 700;
+  color: #007bff;
+  font-size: 1.1rem;
+}
+
+.transaction-status {
+  text-align: right;
+}
+
+.transaction-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.detail-item strong {
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.category-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: capitalize;
+  display: inline-block;
+  width: fit-content;
+}
+
+.category-office_supplies { background: rgba(59, 130, 246, 0.1); color: #1d4ed8; }
+.category-travel { background: rgba(16, 185, 129, 0.1); color: #047857; }
+.category-equipment { background: rgba(245, 158, 11, 0.1); color: #d97706; }
+.category-utilities { background: rgba(139, 92, 246, 0.1); color: #7c3aed; }
+.category-maintenance { background: rgba(239, 68, 68, 0.1); color: #dc2626; }
+.category-other { background: rgba(107, 114, 128, 0.1); color: #374151; }
+
+.transaction-receipt {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.transaction-receipt h5 {
+  margin: 0 0 1rem 0;
+  color: #374151;
+}
+
+.receipt-preview {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.receipt-thumbnail {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.receipt-info p {
+  margin: 0.25rem 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.receipt-link {
+  color: #007bff;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.receipt-link:hover {
+  text-decoration: underline;
+}
+
+.transaction-hash {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: #f1f5f9;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.hash-code {
+  background: #e2e8f0;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 0.8rem;
+  word-break: break-all;
+  display: block;
+  margin-top: 0.5rem;
+}
+
+.blockchain-info {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(16, 185, 129, 0.1));
+  border-radius: var(--border-radius);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.blockchain-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.blockchain-icon {
+  font-size: 1.2rem;
+  animation: pulse 2s infinite;
+}
+
+.blockchain-text {
+  font-weight: 600;
+  color: #059669;
+  font-size: 0.9rem;
+}
+
+.blockchain-details p {
+  margin: 0.5rem 0;
+  font-size: 0.8rem;
+  color: #374151;
+}
+
+.block-hash, .blockchain-id {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.7rem;
+  color: #059669;
+  background: rgba(34, 197, 94, 0.1);
+  padding: 0.125rem 0.25rem;
+  border-radius: 3px;
+  word-break: break-all;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.no-transactions {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: #64748b;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.no-transactions h4 {
+  margin: 0 0 0.5rem 0;
+  color: #374151;
+}
+
+.no-transactions p {
+  margin: 0;
+  font-size: 0.9rem;
 }
 
 .form-row {
@@ -559,180 +819,24 @@
 </style>
 
 <script>
-let ocrData = null;
+// Simple script for any future interactions
+console.log('Budget details page loaded');
 
-// File upload handling
-document.getElementById('receipt').addEventListener('change', handleFileSelect);
-document.getElementById('fileUploadArea').addEventListener('click', () => document.getElementById('receipt').click());
-document.getElementById('fileUploadArea').addEventListener('dragover', handleDragOver);
-document.getElementById('fileUploadArea').addEventListener('drop', handleDrop);
-document.getElementById('expenseForm').addEventListener('submit', handleSubmit);
-
-function handleFileSelect(event) {
-  const file = event.target.files[0];
-  if (file) {
-    displayFilePreview(file);
-    processReceipt(file);
-  }
-}
-
-function handleDragOver(event) {
-  event.preventDefault();
-  document.getElementById('fileUploadArea').classList.add('dragover');
-}
-
-function handleDrop(event) {
-  event.preventDefault();
-  document.getElementById('fileUploadArea').classList.remove('dragover');
+function exportBudgetReport() {
+  const budgetId = '<%= budget._id %>';
+  const budgetName = '<%= budget.name %>';
   
-  const files = event.dataTransfer.files;
-  if (files.length > 0) {
-    document.getElementById('receipt').files = files;
-    displayFilePreview(files[0]);
-    processReceipt(files[0]);
-  }
-}
-
-function displayFilePreview(file) {
-  const preview = document.getElementById('filePreview');
-  const uploadArea = document.getElementById('fileUploadArea');
+  // Create download link
+  const link = document.createElement('a');
+  link.href = `/api/budget/${budgetId}/export`;
+  link.download = `budget-report-${budgetName.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.json`;
   
-  uploadArea.style.display = 'none';
-  preview.style.display = 'flex';
+  // Trigger download
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
   
-  document.getElementById('fileName').textContent = file.name;
-  document.getElementById('fileSize').textContent = formatFileSize(file.size);
-  
-  if (file.type.startsWith('image/')) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      document.getElementById('previewImage').src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-  }
-}
-
-function removeFile() {
-  document.getElementById('filePreview').style.display = 'none';
-  document.getElementById('fileUploadArea').style.display = 'block';
-  document.getElementById('receipt').value = '';
-  document.getElementById('ocrSection').style.display = 'none';
-  ocrData = null;
-}
-
-function formatFileSize(bytes) {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-async function processReceipt(file) {
-  const formData = new FormData();
-  formData.append('image', file);
-  
-  try {
-    const response = await fetch('/api/ocr/process', {
-      method: 'POST',
-      body: formData
-    });
-    
-    const result = await response.json();
-    
-    if (result.success) {
-      ocrData = result.data;
-      displayOCRResults(result.data);
-    } else {
-      console.error('OCR processing failed:', result.error);
-    }
-  } catch (error) {
-    console.error('Error processing receipt:', error);
-  }
-}
-
-function displayOCRResults(data) {
-  const ocrSection = document.getElementById('ocrSection');
-  const ocrResults = document.getElementById('ocrResults');
-  
-  ocrSection.style.display = 'block';
-  
-  let html = '';
-  if (data.vendor) html += `<div class="ocr-item"><span class="ocr-label">Vendor:</span><span class="ocr-value">${data.vendor}</span></div>`;
-  if (data.amount) html += `<div class="ocr-item"><span class="ocr-label">Amount:</span><span class="ocr-value">₹${data.amount}</span></div>`;
-  if (data.date) html += `<div class="ocr-item"><span class="ocr-label">Date:</span><span class="ocr-value">${data.date}</span></div>`;
-  if (data.total) html += `<div class="ocr-item"><span class="ocr-label">Total:</span><span class="ocr-value">₹${data.total}</span></div>`;
-  if (data.tax) html += `<div class="ocr-item"><span class="ocr-label">Tax:</span><span class="ocr-value">₹${data.tax}</span></div>`;
-  
-  if (data.items && data.items.length > 0) {
-    html += '<div class="ocr-item"><span class="ocr-label">Items:</span><span class="ocr-value"></span></div>';
-    data.items.forEach(item => {
-      html += `<div class="ocr-item" style="margin-left: 1rem;"><span class="ocr-label">${item.description}</span><span class="ocr-value">₹${item.amount}</span></div>`;
-    });
-  }
-  
-  ocrResults.innerHTML = html;
-}
-
-function useOCRData() {
-  if (!ocrData) return;
-  
-  if (ocrData.vendor) document.getElementById('vendor').value = ocrData.vendor;
-  if (ocrData.amount) document.getElementById('amount').value = ocrData.amount;
-  
-  // Auto-fill description if not already filled
-  if (!document.getElementById('description').value && ocrData.vendor) {
-    document.getElementById('description').value = `Payment to ${ocrData.vendor}`;
-  }
-}
-
-let isSubmitting = false;
-
-async function handleSubmit(event) {
-  event.preventDefault();
-  
-  if (isSubmitting) {
-    return; // Prevent double submission
-  }
-  
-  const formData = new FormData(event.target);
-  const submitBtn = document.getElementById('submitBtn');
-  
-  isSubmitting = true;
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'Adding Expense...';
-  
-  try {
-    const response = await fetch('/budget/<%= budget._id %>/add-expense', {
-      method: 'POST',
-      body: formData
-    });
-    
-    const result = await response.json();
-    
-    if (result.success) {
-      alert('Expense added successfully!');
-      clearForm();
-      // Reload page to show updated budget
-      window.location.reload();
-    } else {
-      alert('Failed to add expense: ' + result.error);
-    }
-  } catch (error) {
-    console.error('Error adding expense:', error);
-    alert('Error adding expense: ' + error.message);
-  } finally {
-    isSubmitting = false;
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Add Expense';
-  }
-}
-
-function clearForm() {
-  document.getElementById('expenseForm').reset();
-  removeFile();
-  document.getElementById('ocrSection').style.display = 'none';
-  ocrData = null;
+  console.log('Exporting budget report...');
 }
 </script>
 

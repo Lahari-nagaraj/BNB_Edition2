@@ -20,6 +20,7 @@ const visualizationService = require("./services/visualizationService");
 const { cloudinaryService, upload } = require("./services/cloudinaryService");
 const ocrService = require("./services/ocrService");
 const anomalyService = require("./services/anomalyService");
+const blockchainService = require("./services/blockchainService");
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -112,31 +113,63 @@ app.use((req, res, next) => {
 
 app.get("/", async (req, res) => {
   try {
-    const query = { type: "Public", status: { $in: ["approved", "active"] } };
+    // Include all statuses by default, but allow filtering
+    const query = { type: "Public" };
     const searchQuery = req.query.q || "";
     const department = req.query.department || "";
     const status = req.query.status || "";
     const userState = req.query.state || "";
     const userCity = req.query.city || "";
+    const page = parseInt(req.query.page) || 1;
+    const limit = 8; // Show 8 cards per page
+    const skip = (page - 1) * limit;
 
     const searchConditions = [];
     
+    // Add status filter if specified, otherwise show all
+    if (status) {
+      searchConditions.push({ status: { $regex: status, $options: "i" } });
+    }
+    
     if (searchQuery) {
-      searchConditions.push({
-        $or: [
-          { name: { $regex: searchQuery, $options: "i" } },
-          { department: { $regex: searchQuery, $options: "i" } },
-          { state: { $regex: searchQuery, $options: "i" } },
-          { city: { $regex: searchQuery, $options: "i" } },
-          { description: { $regex: searchQuery, $options: "i" } }
-        ]
+      // Enhanced fuzzy search with spelling tolerance
+      const searchTerms = searchQuery.toLowerCase().split(/\s+/).filter(term => term.length > 0);
+      const fuzzyConditions = [];
+      
+      searchTerms.forEach(term => {
+        // Create multiple variations for spelling tolerance
+        const variations = [term];
+        
+        // Add common spelling variations (simple approach)
+        if (term.length > 3) {
+          // Add variations with one character difference
+          for (let i = 0; i < term.length; i++) {
+            const variation = term.slice(0, i) + '.' + term.slice(i + 1);
+            variations.push(variation);
+          }
+        }
+        
+        const termConditions = variations.map(variation => ({
+          $or: [
+            { name: { $regex: variation, $options: "i" } },
+            { department: { $regex: variation, $options: "i" } },
+            { state: { $regex: variation, $options: "i" } },
+            { city: { $regex: variation, $options: "i" } },
+            { description: { $regex: variation, $options: "i" } }
+          ]
+        }));
+        
+        fuzzyConditions.push({ $or: termConditions });
       });
+      
+      if (fuzzyConditions.length > 0) {
+        searchConditions.push({ $and: fuzzyConditions });
+      }
     }
     
     if (department) {
       searchConditions.push({ department: { $regex: department, $options: "i" } });
     }
-    
     
     if (userState) {
       searchConditions.push({ state: { $regex: userState, $options: "i" } });
@@ -150,7 +183,11 @@ app.get("/", async (req, res) => {
       query.$and = searchConditions;
     }
 
-    const budgets = await Budget.find(query).populate("creator").sort({ createdAt: -1 }).limit(20);
+    // Get total count for pagination
+    const totalBudgets = await Budget.countDocuments(query);
+    const totalPages = Math.ceil(totalBudgets / limit);
+
+    const budgets = await Budget.find(query).populate("creator").sort({ createdAt: -1 }).skip(skip).limit(limit);
     
     for (let budget of budgets) {
       if (!budget.aiSummary && budget.status === 'approved') {
@@ -170,16 +207,38 @@ app.get("/", async (req, res) => {
     const states = indianStates;
     const cities = await Budget.distinct("city", { type: "Public" });
     
+    // Get transactions for each budget
+    const budgetsWithTransactions = await Promise.all(budgets.map(async (budget) => {
+      const budgetTransactions = await Transaction.find({ budgetId: budget._id })
+        .sort({ createdAt: -1 })
+        .limit(3);
+      
+      return {
+        ...budget.toObject(),
+        recentTransactions: budgetTransactions
+      };
+    }));
+    
     res.render("home", {
       title: "BNB Fund Management",
-      budgets,
+      budgets: budgetsWithTransactions,
       departments,
       states,
       cities,
       searchQuery,
       department,
+      status,
       userState,
-      userCity
+      userCity,
+      pagination: {
+        currentPage: page,
+        totalPages: totalPages,
+        totalBudgets: totalBudgets,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+        nextPage: page + 1,
+        prevPage: page - 1
+      }
     });
   } catch (err) {
     console.log(err);
@@ -375,7 +434,11 @@ app.post("/budget/new", async (req, res) => {
     approvedBy,
     type,
     vendorNames,
-    vendorEmails
+    vendorEmails,
+    projectType,
+    nationality,
+    collegeName,
+    collegeType
   } = req.body;
   if (
     !name ||
@@ -412,6 +475,10 @@ app.post("/budget/new", async (req, res) => {
     state,
     city,
     country,
+    projectType: projectType || 'government',
+    nationality,
+    collegeName,
+    collegeType,
     totalBudget,
     fiscalYear,
     approvedBy,
@@ -456,7 +523,14 @@ app.get("/budget/:id", async (req, res) => {
     .populate("creator")
     .populate("assignedEditors");
   if (!budget) return res.status(404).send("Budget not found");
-  res.render("budgetDetails", { title: budget.name, budget });
+  
+  // Get all transactions for this budget
+  const transactions = await Transaction.find({ budgetId: req.params.id })
+    .populate('createdBy', 'name')
+    .populate('approvedBy', 'name')
+    .sort({ createdAt: -1 });
+  
+  res.render("budgetDetails", { title: budget.name, budget, transactions });
 });
 
 app.get("/budget/:id/edit", async (req, res) => {
@@ -540,6 +614,26 @@ app.get("/admin/dashboard", async (req, res) => {
       title: "Admin Dashboard", 
       budgets,
       stats
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server Error");
+  }
+});
+
+// Admin route to view all pending transactions
+app.get("/admin/transactions/pending", async (req, res) => {
+  if (!req.session.isAdmin) return res.status(403).send("Admin access required");
+  
+  try {
+    const pendingTransactions = await Transaction.find({ status: 'pending' })
+      .populate('createdBy', 'name email')
+      .populate('budgetId', 'name department')
+      .sort({ createdAt: -1 });
+    
+    res.render("adminPendingTransactions", {
+      title: "Pending Transactions - Admin",
+      transactions: pendingTransactions
     });
   } catch (error) {
     console.error(error);
@@ -681,7 +775,8 @@ app.post("/transaction/:id/approve", async (req, res) => {
   
   await auditLog("approve", "Transaction", transaction._id, transaction.description, req, oldData, transaction.toObject());
   
-  res.redirect(`/vendor/${transaction.vendorId}/transactions`);
+  // Redirect to admin pending transactions page instead of vendor page
+  res.redirect("/admin/transactions/pending");
 });
 
 app.post("/transaction/:id/reject", async (req, res) => {
@@ -698,7 +793,8 @@ app.post("/transaction/:id/reject", async (req, res) => {
   
   await auditLog("reject", "Transaction", transaction._id, transaction.description, req, oldData, transaction.toObject());
   
-  res.redirect(`/vendor/${transaction.vendorId}/transactions`);
+  // Redirect to admin pending transactions page instead of vendor page
+  res.redirect("/admin/transactions/pending");
 });
 
 app.post("/budget/:id/approve", async (req, res) => {
@@ -1000,6 +1096,21 @@ app.post("/editor/transaction/new", upload.single('receipt'), async (req, res) =
     });
     
     await transaction.save();
+    
+    // Store transaction in blockchain
+    try {
+      const blockchainResult = await blockchainService.storeTransaction(transaction);
+      if (blockchainResult.success) {
+        transaction.blockchainId = blockchainResult.transactionId;
+        transaction.blockHash = blockchainResult.blockHash;
+        transaction.blockIndex = blockchainResult.blockIndex;
+        await transaction.save();
+        console.log('Transaction stored in blockchain:', blockchainResult.transactionId);
+      }
+    } catch (blockchainError) {
+      console.error('Blockchain storage error:', blockchainError);
+      // Continue without blockchain storage
+    }
     
     // AI Classification (disabled to prevent crashes)
     // try {
@@ -1473,23 +1584,214 @@ app.get("/budget/:id/enhanced", async (req, res) => {
     
     if (!budget) return res.status(404).send("Budget not found");
     
-    // Generate AI-powered content
+    // Get all transactions for this budget
+    const transactions = await Transaction.find({ budgetId: req.params.id })
+      .populate('createdBy', 'name')
+      .populate('approvedBy', 'name')
+      .sort({ createdAt: -1 });
+    
+    // Create comprehensive context for AI
+    const budgetContext = {
+      name: budget.name,
+      department: budget.department,
+      state: budget.state,
+      city: budget.city,
+      country: budget.country,
+      totalBudget: budget.totalBudget,
+      spent: budget.spent,
+      remaining: budget.remaining,
+      fiscalYear: budget.fiscalYear,
+      approvedBy: budget.approvedBy,
+      type: budget.type,
+      status: budget.status,
+      expenses: budget.expenses,
+      departments: budget.departments,
+      transactions: transactions.map(t => ({
+        description: t.description,
+        amount: t.amount,
+        category: t.category,
+        status: t.status,
+        date: t.createdAt,
+        receipt: t.receipt ? 'Yes' : 'No'
+      }))
+    };
+    
+    // Generate AI-powered content with full context
     const [summary, faq, sankeyData] = await Promise.all([
-      aiService.generateBudgetSummary(budget),
-      aiService.generateFAQ(budget),
-      aiService.generateSankeyData(budget)
+      aiService.generateBudgetSummary(budget, budgetContext),
+      aiService.generateFAQ(budget, budgetContext),
+      aiService.generateSankeyData(budget, budgetContext)
     ]);
     
     res.render("enhancedBudgetDetails", { 
       title: budget.name, 
       budget, 
+      transactions,
       summary, 
       faq, 
-      sankeyData 
+      sankeyData,
+      budgetContext: JSON.stringify(budgetContext)
     });
   } catch (error) {
     console.error(error);
     res.status(500).send("Server Error");
+  }
+});
+
+// STATE-WISE BUDGET VIEW
+app.get("/budgets/state/:state", async (req, res) => {
+  try {
+    const state = req.params.state;
+    const page = parseInt(req.query.page) || 1;
+    const limit = 8;
+    const skip = (page - 1) * limit;
+    
+    const query = { 
+      type: "Public", 
+      state: { $regex: state, $options: "i" } 
+    };
+    
+    const totalBudgets = await Budget.countDocuments(query);
+    const totalPages = Math.ceil(totalBudgets / limit);
+    const budgets = await Budget.find(query)
+      .populate("creator")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    
+    res.render("stateBudgets", {
+      title: `Budgets in ${state}`,
+      budgets,
+      state,
+      pagination: {
+        currentPage: page,
+        totalPages: totalPages,
+        totalBudgets: totalBudgets,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+        nextPage: page + 1,
+        prevPage: page - 1
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching state budgets:', error);
+    res.status(500).send("Server Error");
+  }
+});
+
+// DEPARTMENT-WISE BUDGET VIEW
+app.get("/budgets/department/:department", async (req, res) => {
+  try {
+    const department = req.params.department;
+    const page = parseInt(req.query.page) || 1;
+    const limit = 8;
+    const skip = (page - 1) * limit;
+    
+    const query = { 
+      type: "Public", 
+      department: { $regex: department, $options: "i" } 
+    };
+    
+    const totalBudgets = await Budget.countDocuments(query);
+    const totalPages = Math.ceil(totalBudgets / limit);
+    const budgets = await Budget.find(query)
+      .populate("creator")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    
+    res.render("departmentBudgets", {
+      title: `${department} Department Budgets`,
+      budgets,
+      department,
+      pagination: {
+        currentPage: page,
+        totalPages: totalPages,
+        totalBudgets: totalBudgets,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+        nextPage: page + 1,
+        prevPage: page - 1
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching department budgets:', error);
+    res.status(500).send("Server Error");
+  }
+});
+
+// EXPORT REPORT ROUTE
+app.get("/api/budget/:id/export", async (req, res) => {
+  try {
+    const budget = await Budget.findById(req.params.id)
+      .populate("creator")
+      .populate({
+        path: 'departments',
+        populate: {
+          path: 'projects',
+          populate: {
+            path: 'vendors'
+          }
+        }
+      });
+    
+    if (!budget) return res.status(404).send("Budget not found");
+    
+    // Get all transactions for this budget
+    const transactions = await Transaction.find({ budgetId: req.params.id })
+      .populate('createdBy', 'name')
+      .populate('approvedBy', 'name')
+      .sort({ createdAt: -1 });
+    
+    // Generate comprehensive report data
+    const reportData = {
+      budget: {
+        name: budget.name,
+        department: budget.department,
+        state: budget.state,
+        city: budget.city,
+        country: budget.country,
+        totalBudget: budget.totalBudget,
+        spent: budget.spent,
+        remaining: budget.remaining,
+        fiscalYear: budget.fiscalYear,
+        approvedBy: budget.approvedBy,
+        type: budget.type,
+        status: budget.status,
+        createdAt: budget.createdAt,
+        updatedAt: budget.updatedAt
+      },
+      transactions: transactions.map(t => ({
+        description: t.description,
+        amount: t.amount,
+        category: t.category,
+        status: t.status,
+        notes: t.notes,
+        createdAt: t.createdAt,
+        approvedAt: t.approvedAt,
+        createdBy: t.createdBy ? t.createdBy.name : 'Unknown',
+        approvedBy: t.approvedBy ? t.approvedBy.name : null,
+        receipt: t.receipt ? 'Yes' : 'No',
+        transactionHash: t.transactionHash
+      })),
+      summary: {
+        totalTransactions: transactions.length,
+        totalAmount: transactions.reduce((sum, t) => sum + t.amount, 0),
+        pendingTransactions: transactions.filter(t => t.status === 'pending').length,
+        approvedTransactions: transactions.filter(t => t.status === 'approved').length,
+        rejectedTransactions: transactions.filter(t => t.status === 'rejected').length
+      },
+      generatedAt: new Date().toISOString()
+    };
+    
+    // Set headers for file download
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="budget-report-${budget.name.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.json"`);
+    
+    res.json(reportData);
+  } catch (error) {
+    console.error('Error generating export:', error);
+    res.status(500).send("Error generating report");
   }
 });
 

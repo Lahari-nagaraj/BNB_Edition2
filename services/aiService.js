@@ -7,7 +7,7 @@ class AIService {
   }
 
   // Budget Summary Generator
-  async generateBudgetSummary(budgetData) {
+  async generateBudgetSummary(budgetData, context = null) {
     try {
       // Build comprehensive project context
       let departmentsInfo = '';
@@ -28,7 +28,11 @@ class AIService {
       }
 
       let expensesInfo = '';
-      if (budgetData.expenses && budgetData.expenses.length > 0) {
+      if (context && context.transactions && context.transactions.length > 0) {
+        expensesInfo = '\nRecent Transactions:\n' + context.transactions.slice(0, 3).map(transaction => 
+          `- ${transaction.description}: ₹${transaction.amount?.toLocaleString() || 0} (${transaction.category || 'General'}) - ${transaction.status}`
+        ).join('\n');
+      } else if (budgetData.expenses && budgetData.expenses.length > 0) {
         expensesInfo = '\nRecent Expenses:\n' + budgetData.expenses.slice(0, 3).map(expense => 
           `- ${expense.description}: ₹${expense.amount?.toLocaleString() || 0} (${expense.category || 'General'})`
         ).join('\n');
@@ -132,7 +136,7 @@ Return JSON array:
   }
 
   // FAQ Generator
-  async generateFAQ(budgetData) {
+  async generateFAQ(budgetData, context = null) {
     try {
       // Build comprehensive project context for FAQ
       let departmentsInfo = '';
@@ -185,7 +189,7 @@ Return JSON array:
   }
 
   // Sankey Data Generator
-  async generateSankeyData(hierarchyData) {
+  async generateSankeyData(hierarchyData, context = null) {
     try {
       const nodes = [];
       const links = [];
@@ -193,7 +197,7 @@ Return JSON array:
       // Budget node
       nodes.push({
         id: `budget_${hierarchyData._id}`,
-        label: hierarchyData.name,
+        name: hierarchyData.name,
         type: 'budget'
       });
 
@@ -202,13 +206,13 @@ Return JSON array:
         hierarchyData.departments.forEach(dept => {
           nodes.push({
             id: `dept_${dept._id}`,
-            label: dept.name,
+            name: dept.name,
             type: 'department'
           });
           links.push({
             source: `budget_${hierarchyData._id}`,
             target: `dept_${dept._id}`,
-            value: dept.budget
+            value: dept.allocatedBudget || 100000
           });
 
           // Project nodes and links
@@ -216,13 +220,13 @@ Return JSON array:
             dept.projects.forEach(project => {
               nodes.push({
                 id: `project_${project._id}`,
-                label: project.name,
+                name: project.name,
                 type: 'project'
               });
               links.push({
                 source: `dept_${dept._id}`,
                 target: `project_${project._id}`,
-                value: project.budget
+                value: project.allocatedBudget || 50000
               });
 
               // Vendor nodes and links
@@ -230,18 +234,37 @@ Return JSON array:
                 project.vendors.forEach(vendor => {
                   nodes.push({
                     id: `vendor_${vendor._id}`,
-                    label: vendor.name,
+                    name: vendor.name,
                     type: 'vendor'
                   });
                   links.push({
                     source: `project_${project._id}`,
                     target: `vendor_${vendor._id}`,
-                    value: vendor.allocatedAmount
+                    value: vendor.allocatedBudget || 25000
                   });
                 });
               }
             });
           }
+        });
+      }
+
+      // Add transaction data if available
+      if (context && context.transactions && context.transactions.length > 0) {
+        context.transactions.forEach((transaction, index) => {
+          const transactionId = `transaction_${index}`;
+          nodes.push({
+            id: transactionId,
+            name: transaction.description.substring(0, 20) + '...',
+            type: 'transaction'
+          });
+          
+          // Link transaction to budget
+          links.push({
+            source: `budget_${hierarchyData._id}`,
+            target: transactionId,
+            value: transaction.amount || 1000
+          });
         });
       }
 

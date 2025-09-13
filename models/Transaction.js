@@ -56,7 +56,12 @@ const transactionSchema = new mongoose.Schema({
   
   // Public verification
   isPublic: { type: Boolean, default: true },
-  verificationCount: { type: Number, default: 0 }
+  verificationCount: { type: Number, default: 0 },
+  
+  // Blockchain storage
+  blockchainId: { type: String },
+  blockHash: { type: String },
+  blockIndex: { type: Number }
 }, { timestamps: true });
 
 module.exports = mongoose.model("Transaction", transactionSchema);
