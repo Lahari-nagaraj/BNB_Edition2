@@ -49,9 +49,9 @@
     <div class="progress-section">
       <h3>Budget Utilization</h3>
       <div class="progress-bar large">
-        <div class="progress-fill" style="width: <%= Math.min(100, (budget.spent / budget.totalBudget * 100)) %>%"></div>
+        <div class="progress-fill" style="width: 0%"></div>
       </div>
-      <p class="progress-text"><%= ((budget.spent / budget.totalBudget) * 100).toFixed(1) %>% utilized</p>
+      <p class="progress-text"><%= budget.totalBudget > 0 ? ((budget.spent / budget.totalBudget) * 100).toFixed(1) : 0 %>% utilized</p>
     </div>
   </div>
 
@@ -88,22 +88,6 @@
   </div>
 
   <div class="actions-section">
-    <% 
-      // Check if user is authorized to edit this budget
-      const isCreator = session.userId && budget.creator && session.userId.toString() === budget.creator._id.toString();
-      const isAssignedEditor = session.userId && budget.assignedEditors && 
-        budget.assignedEditors.some(editor => 
-          typeof editor === 'string' ? editor === session.userId.toString() : editor._id.toString() === session.userId.toString()
-        );
-      const isAdmin = session.isAdmin;
-      const canEdit = isCreator || isAssignedEditor || isAdmin;
-    %>
-    
-    <% if(canEdit) { %>
-    <a href="/budget/<%= budget._id %>/edit"><button>Edit Budget</button></a>
-    <a href="/budget/<%= budget._id %>/departments"><button class="btn-primary">Manage Departments</button></a>
-    <% } %>
-    
     <a href="/budget/<%= budget._id %>/visualization"><button class="btn-info">📊 Analytics & Visualization</button></a>
     
     <% if(session.isAdmin && budget.status === 'pending'){ %>
@@ -112,6 +96,39 @@
     </form>
     <% } %>
   </div>
+
+  <!-- Departments Section -->
+  <% if(departments && departments.length > 0) { %>
+  <div class="departments-section">
+    <h3>🏢 Departments</h3>
+    <div class="departments-grid">
+      <% departments.forEach(department => { %>
+      <div class="department-card">
+        <div class="department-header">
+          <h4><%= department.name %></h4>
+          <span class="department-budget">₹<%= department.budget?.toLocaleString() || 0 %></span>
+        </div>
+        <div class="department-stats">
+          <div class="stat-item">
+            <span class="stat-label">Spent:</span>
+            <span class="stat-value">₹<%= department.spent?.toLocaleString() || 0 %></span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">Remaining:</span>
+            <span class="stat-value">₹<%= department.remaining?.toLocaleString() || 0 %></span>
+          </div>
+        </div>
+        <div class="department-progress">
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: 0%"></div>
+          </div>
+          <span class="progress-text">0.0% utilized</span>
+        </div>
+      </div>
+      <% }) %>
+    </div>
+  </div>
+  <% } %>
 
   <!-- Transactions Section -->
   <div class="transactions-section">
@@ -409,6 +426,104 @@
 }
 
 /* Transactions Section Styles */
+/* Departments Section Styles */
+.departments-section {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  margin-bottom: 2rem;
+}
+
+.departments-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.department-card {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 1.5rem;
+  border-left: 4px solid #007bff;
+  transition: all 0.3s ease;
+}
+
+.department-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+}
+
+.department-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.department-header h4 {
+  font-family: 'Montserrat', sans-serif;
+  font-weight: 600;
+  margin: 0;
+  color: #1e293b;
+}
+
+.department-budget {
+  font-weight: 700;
+  color: #007bff;
+  font-size: 1.1rem;
+}
+
+.department-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.department-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.department-progress .progress-bar {
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.department-progress .progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #007bff, #0056b3);
+  transition: width 0.3s ease;
+}
+
+.department-progress .progress-text {
+  font-size: 0.9rem;
+  color: #64748b;
+  text-align: right;
+}
+
 .transactions-section {
   background: #fff;
   padding: 2rem;

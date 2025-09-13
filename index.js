@@ -338,26 +338,44 @@ app.get("/admin/editors", async (req, res) => {
   }
 });
 
-app.get("/admin/editors/new", (req, res) => {
+app.get("/admin/editors/new", async (req, res) => {
   if (!req.session.isAdmin) return res.status(403).send("Admin access required");
   
-  res.render("createEditor", {
-    title: "Create New Editor",
-    error: null
-  });
+  try {
+    // Get all budgets and their departments
+    const budgets = await Budget.find({}).populate('departments');
+    const departments = await Department.find({});
+    
+    res.render("createEditor", {
+      title: "Create New Editor",
+      error: null,
+      budgets,
+      departments
+    });
+  } catch (error) {
+    console.error(error);
+    res.render("createEditor", {
+      title: "Create New Editor",
+      error: "Failed to load data"
+    });
+  }
 });
 
 app.post("/admin/editors/new", async (req, res) => {
   if (!req.session.isAdmin) return res.status(403).send("Admin access required");
   
   try {
-    const { name, email, password, role, permissions } = req.body;
+    const { name, email, password, role, permissions, assignedDepartments } = req.body;
     
     const existingEditor = await Editor.findOne({ email });
     if (existingEditor) {
+      const budgets = await Budget.find({}).populate('departments');
+      const departments = await Department.find({});
       return res.render("createEditor", {
         title: "Create New Editor",
-        error: "Editor with this email already exists"
+        error: "Editor with this email already exists",
+        budgets,
+        departments
       });
     }
     
@@ -374,9 +392,26 @@ app.post("/admin/editors/new", async (req, res) => {
         canEditBudgets: false,
         canApproveTransactions: false
       },
+      assignedDepartments: assignedDepartments || [],
       createdBy: req.session.userId
     });
     
+    await editor.save();
+    
+    // Create corresponding User account for the editor
+    const user = new User({
+      name,
+      email,
+      password: hashedPassword,
+      role: 'editor',
+      assignedBudgets: [], // Will be populated based on departments
+      assignedDepartments: assignedDepartments || []
+    });
+    
+    await user.save();
+    
+    // Update editor with user ID
+    editor.userId = user._id;
     await editor.save();
     
     await auditLog("create", "Editor", editor._id, editor.name, req, null, editor.toObject());
@@ -384,10 +419,93 @@ app.post("/admin/editors/new", async (req, res) => {
     res.redirect("/admin/editors");
   } catch (error) {
     console.error(error);
+    const budgets = await Budget.find({}).populate('departments');
+    const departments = await Department.find({});
     res.render("createEditor", {
       title: "Create New Editor",
-      error: "Failed to create editor"
+      error: "Failed to create editor",
+      budgets,
+      departments
     });
+  }
+});
+
+// Generate multiple editors for different departments
+app.post("/admin/editors/generate-multiple", async (req, res) => {
+  if (!req.session.isAdmin) return res.status(403).send("Admin access required");
+  
+  try {
+    const { budgetId, departmentCount } = req.body;
+    const budget = await Budget.findById(budgetId).populate('departments');
+    
+    if (!budget) {
+      return res.status(404).json({ error: "Budget not found" });
+    }
+    
+    const editors = [];
+    const users = [];
+    
+    // Generate editors for each department
+    for (let i = 1; i <= departmentCount; i++) {
+      const editorName = `Editor ${i}`;
+      const editorEmail = `editor${i}_${Date.now()}@bnb.com`;
+      const editorPassword = Math.random().toString(36).slice(-8);
+      
+      const hashedPassword = await bcrypt.hash(editorPassword, 10);
+      
+      // Create Editor
+      const editor = new Editor({
+        name: editorName,
+        email: editorEmail,
+        password: hashedPassword,
+        role: 'editor',
+        permissions: {
+          canCreateTransactions: true,
+          canUploadReceipts: true,
+          canEditBudgets: false,
+          canApproveTransactions: false
+        },
+        assignedDepartments: budget.departments.slice(i-1, i).map(d => d._id),
+        createdBy: req.session.userId
+      });
+      
+      await editor.save();
+      
+      // Create corresponding User account
+      const user = new User({
+        name: editorName,
+        email: editorEmail,
+        password: hashedPassword,
+        role: 'editor',
+        assignedBudgets: [budgetId],
+        assignedDepartments: budget.departments.slice(i-1, i).map(d => d._id)
+      });
+      
+      await user.save();
+      
+      // Update editor with user ID
+      editor.userId = user._id;
+      await editor.save();
+      
+      editors.push({
+        name: editorName,
+        email: editorEmail,
+        password: editorPassword,
+        department: budget.departments[i-1]?.name || 'General'
+      });
+      
+      await auditLog("create", "Editor", editor._id, editor.name, req, null, editor.toObject());
+    }
+    
+    res.json({
+      success: true,
+      message: `Generated ${editors.length} editors successfully`,
+      editors
+    });
+    
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to generate editors" });
   }
 });
 
@@ -440,21 +558,31 @@ app.post("/budget/new", async (req, res) => {
     collegeName,
     collegeType
   } = req.body;
-  if (
-    !name ||
-    !department ||
-    !state ||
-    !country ||
-    !totalBudget ||
-    !fiscalYear ||
-    !approvedBy ||
-    !type
-  )
+  
+  // Validate based on project type
+  let validationError = false;
+  let errorMessage = "All fields required";
+  
+  if (!name || !department || !state || !totalBudget || !fiscalYear || !approvedBy || !type) {
+    validationError = true;
+  }
+  
+  if (projectType === 'government') {
+    // Government projects can use defaults for country and nationality
+    // No additional validation needed as they have defaults
+  } else if (projectType === 'college') {
+    if (!collegeName || !collegeType) {
+      validationError = true;
+    }
+  }
+  
+  if (validationError) {
     return res.render("addBudget", {
       title: "Create Budget",
-      error: "All fields required",
+      error: errorMessage,
       states: indianStates,
     });
+  }
   
   const editorEmail = `editor_${Date.now()}@bnb.com`;
   const editorPassword = crypto.randomBytes(6).toString("hex");
@@ -519,18 +647,44 @@ app.post("/budget/new", async (req, res) => {
 });
 
 app.get("/budget/:id", async (req, res) => {
-  const budget = await Budget.findById(req.params.id)
-    .populate("creator")
-    .populate("assignedEditors");
-  if (!budget) return res.status(404).send("Budget not found");
-  
-  // Get all transactions for this budget
-  const transactions = await Transaction.find({ budgetId: req.params.id })
-    .populate('createdBy', 'name')
-    .populate('approvedBy', 'name')
-    .sort({ createdAt: -1 });
-  
-  res.render("budgetDetails", { title: budget.name, budget, transactions });
+  try {
+    const budget = await Budget.findById(req.params.id)
+      .populate("creator")
+      .populate("assignedEditors");
+    if (!budget) return res.status(404).send("Budget not found");
+    
+    // Get all transactions for this budget
+    const transactions = await Transaction.find({ budgetId: req.params.id })
+      .populate('createdBy', 'name')
+      .populate('approvedBy', 'name')
+      .sort({ createdAt: -1 });
+    
+    // Get departments for this budget
+    const departments = await Department.find({ budgetId: req.params.id });
+    
+    // Calculate actual spent amount from transactions
+    const actualSpent = transactions.reduce((sum, transaction) => {
+      return sum + (transaction.amount || 0);
+    }, 0);
+    
+    // Update budget spent amount if it's different
+    if (budget.spent !== actualSpent) {
+      budget.spent = actualSpent;
+      budget.remaining = budget.totalBudget - actualSpent;
+      await budget.save();
+    }
+    
+    res.render("budgetDetails", { 
+      title: budget.name, 
+      budget, 
+      transactions,
+      departments,
+      session: req.session 
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server Error");
+  }
 });
 
 app.get("/budget/:id/edit", async (req, res) => {
@@ -608,12 +762,24 @@ app.get("/admin/dashboard", async (req, res) => {
       }
     ]);
     
+    // Get recent transactions
+    const recentTransactions = await Transaction.find()
+      .populate('createdBy', 'name email')
+      .populate('budgetId', 'name department')
+      .sort({ createdAt: -1 })
+      .limit(10);
+    
+    // Get total transactions count
+    const totalTransactions = await Transaction.countDocuments();
+    
     const stats = editorStats[0] || { totalEditors: 0, activeEditors: 0 };
+    stats.totalTransactions = totalTransactions;
     
     res.render("adminDashboard", { 
       title: "Admin Dashboard", 
       budgets,
-      stats
+      stats,
+      recentTransactions
     });
   } catch (error) {
     console.error(error);
@@ -641,6 +807,185 @@ app.get("/admin/transactions/pending", async (req, res) => {
   }
 });
 
+// Admin route to update budget status
+app.post("/admin/budget/:id/status", async (req, res) => {
+  if (!req.session.isAdmin) return res.status(403).send("Admin access required");
+  
+  try {
+    const { status } = req.body;
+    const validStatuses = ["draft", "pending", "approved", "rejected", "ongoing", "finished"];
+    
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: "Invalid status" });
+    }
+    
+    const budget = await Budget.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true }
+    );
+    
+    if (!budget) {
+      return res.status(404).json({ error: "Budget not found" });
+    }
+    
+    res.json({ success: true, status: budget.status });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server Error" });
+  }
+});
+
+// Chart data API routes for AI enhanced page
+app.get("/api/budget/:id/charts/spending", async (req, res) => {
+  try {
+    const budget = await Budget.findById(req.params.id);
+    if (!budget) return res.status(404).json({ error: "Budget not found" });
+
+    const data = {
+      type: 'doughnut',
+      data: {
+        labels: ['Spent', 'Remaining'],
+        datasets: [{
+          data: [budget.spent, budget.remaining],
+          backgroundColor: ['#ef4444', '#10b981'],
+          borderWidth: 2,
+          borderColor: '#ffffff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom'
+          }
+        }
+      }
+    };
+
+    res.json(data);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server Error" });
+  }
+});
+
+app.get("/api/budget/:id/charts/departments", async (req, res) => {
+  try {
+    const budget = await Budget.findById(req.params.id);
+    if (!budget) return res.status(404).json({ error: "Budget not found" });
+
+    let labels = ['General Operations'];
+    let data = [budget.totalBudget];
+
+    if (budget.departments && budget.departments.length > 0) {
+      labels = budget.departments.map(dept => dept.name);
+      data = budget.departments.map(dept => dept.allocatedBudget || 0);
+    }
+
+    const chartData = {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [{
+          label: 'Allocated Budget',
+          data: data,
+          backgroundColor: '#3b82f6',
+          borderColor: '#1d4ed8',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    };
+
+    res.json(chartData);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server Error" });
+  }
+});
+
+app.get("/api/budget/:id/charts/timeline", async (req, res) => {
+  try {
+    const transactions = await Transaction.find({ budgetId: req.params.id })
+      .sort({ createdAt: 1 });
+
+    // Group transactions by month
+    const monthlyData = {};
+    transactions.forEach(transaction => {
+      const month = new Date(transaction.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      if (!monthlyData[month]) {
+        monthlyData[month] = 0;
+      }
+      monthlyData[month] += transaction.amount;
+    });
+
+    const labels = Object.keys(monthlyData);
+    const data = Object.values(monthlyData);
+
+    const chartData = {
+      type: 'line',
+      data: {
+        labels: labels.length > 0 ? labels : ['No Data'],
+        datasets: [{
+          label: 'Monthly Spending',
+          data: data.length > 0 ? data : [0],
+          borderColor: '#8b5cf6',
+          backgroundColor: 'rgba(139, 92, 246, 0.1)',
+          tension: 0.4,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    };
+
+    res.json(chartData);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server Error" });
+  }
+});
+
+app.get("/api/budget/:id/sankey", async (req, res) => {
+  try {
+    const budget = await Budget.findById(req.params.id);
+    if (!budget) return res.status(404).json({ error: "Budget not found" });
+
+    const transactions = await Transaction.find({ budgetId: req.params.id });
+    
+    const budgetContext = {
+      transactions: transactions.map(t => ({
+        description: t.description,
+        amount: t.amount,
+        category: t.category || 'General'
+      }))
+    };
+
+    const sankeyData = await aiService.generateSankeyData(budget, budgetContext);
+    res.json(sankeyData);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Server Error" });
+  }
+});
+
 app.get("/budget/:id/departments", async (req, res) => {
   if (!req.session.userId) return res.redirect("/login");
   const budget = await Budget.findById(req.params.id);
@@ -656,17 +1001,37 @@ app.post("/budget/:id/departments", async (req, res) => {
   if (!req.session.userId) return res.status(403).send("Login required");
   const { name, budget } = req.body;
   
-  const department = new Department({
-    name,
-    budget: parseFloat(budget),
-    budgetId: req.params.id,
-    createdBy: req.session.userId
-  });
-  await department.save();
-  
-  await auditLog("create", "Department", department._id, department.name, req, null, department.toObject());
-  
-  res.redirect(`/budget/${req.params.id}/departments`);
+  try {
+    // Get the parent budget
+    const parentBudget = await Budget.findById(req.params.id);
+    if (!parentBudget) return res.status(404).send("Budget not found");
+    
+    // Calculate total allocated to existing departments
+    const existingDepartments = await Department.find({ budgetId: req.params.id });
+    const totalAllocated = existingDepartments.reduce((sum, dept) => sum + (dept.budget || 0), 0);
+    const requestedAmount = parseFloat(budget);
+    
+    // Check if adding this department would exceed the total budget
+    if (totalAllocated + requestedAmount > parentBudget.totalBudget) {
+      const availableAmount = parentBudget.totalBudget - totalAllocated;
+      return res.status(400).send(`Budget exceeded! You can only allocate ₹${availableAmount.toLocaleString()} more. Current allocation: ₹${totalAllocated.toLocaleString()}, Total budget: ₹${parentBudget.totalBudget.toLocaleString()}`);
+    }
+    
+    const department = new Department({
+      name,
+      budget: requestedAmount,
+      budgetId: req.params.id,
+      createdBy: req.session.userId
+    });
+    await department.save();
+    
+    await auditLog("create", "Department", department._id, department.name, req, null, department.toObject());
+    
+    res.redirect(`/budget/${req.params.id}/departments`);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Server Error");
+  }
 });
 
 app.get("/department/:id/projects", async (req, res) => {

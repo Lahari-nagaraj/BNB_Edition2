@@ -25,11 +25,11 @@ const budgetSchema = new mongoose.Schema(
     department: { type: String, required: true },
     state: { type: String, required: true },
     city: { type: String },
-    country: { type: String, required: true },
+    country: { type: String, default: "India" },
     // Project Type Fields
     projectType: { type: String, enum: ["government", "college"], default: "government" },
     // Government specific fields
-    nationality: { type: String },
+    nationality: { type: String, default: "Indian" },
     // College specific fields
     collegeName: { type: String },
     collegeType: { type: String },
@@ -39,7 +39,7 @@ const budgetSchema = new mongoose.Schema(
     fiscalYear: { type: String, required: true },
     approvedBy: { type: String, required: true },
     type: { type: String, enum: ["Public", "Private"], required: true },
-    status: { type: String, enum: ["draft", "pending", "approved", "rejected", "active", "completed"], default: "draft" },
+    status: { type: String, enum: ["draft", "pending", "approved", "rejected", "ongoing", "finished"], default: "draft" },
     creator: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     assignedEditors: [{
       type: mongoose.Schema.Types.ObjectId,

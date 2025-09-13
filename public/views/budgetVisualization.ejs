@@ -96,6 +96,35 @@
     </div>
   </div>
 
+  <!-- AI-Powered Analysis Section -->
+  <div class="ai-section">
+    <h3>🤖 AI-Powered Analysis</h3>
+    
+    <!-- AI Summary -->
+    <div class="ai-summary-card">
+      <h4>📊 Budget Summary</h4>
+      <div id="aiSummary" class="ai-content">
+        <div class="loading">Generating AI summary...</div>
+      </div>
+    </div>
+    
+    <!-- AI FAQ -->
+    <div class="ai-faq-card">
+      <h4>❓ Frequently Asked Questions</h4>
+      <div id="aiFAQ" class="ai-content">
+        <div class="loading">Generating FAQ...</div>
+      </div>
+    </div>
+    
+    <!-- Fund Flow Visualization -->
+    <div class="ai-sankey-card">
+      <h4>🌊 Fund Flow Visualization</h4>
+      <div id="sankeyContainer" class="sankey-container">
+        <svg id="sankeyDiagram"></svg>
+      </div>
+    </div>
+  </div>
+
   <!-- Project Hierarchy Section -->
   <div class="hierarchy-section">
     <h3>🏗️ Project Hierarchy</h3>
@@ -110,6 +139,9 @@
 
 <!-- Chart.js CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- D3.js for Sankey diagram -->
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
 
 <style>
 .metrics-grid {
@@ -191,12 +223,124 @@
   max-height: 300px;
 }
 
-.anomaly-section, .feedback-section, .hierarchy-section {
+.anomaly-section, .feedback-section, .hierarchy-section, .ai-section {
   background: white;
   padding: 1.5rem;
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-light);
   margin-bottom: 2rem;
+}
+
+.ai-section {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.ai-section h3 {
+  color: white;
+  margin-bottom: 2rem;
+  text-align: center;
+  font-size: 1.5rem;
+}
+
+.ai-summary-card, .ai-faq-card, .ai-sankey-card {
+  background: rgba(255, 255, 255, 0.95);
+  color: #333;
+  padding: 1.5rem;
+  border-radius: var(--border-radius-lg);
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.ai-summary-card h4, .ai-faq-card h4, .ai-sankey-card h4 {
+  color: #1e293b;
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+.ai-content {
+  min-height: 100px;
+}
+
+.loading {
+  text-align: center;
+  color: #64748b;
+  font-style: italic;
+  padding: 2rem;
+}
+
+.sankey-container {
+  width: 100%;
+  height: 400px;
+  overflow-x: auto;
+}
+
+.sankey-container svg {
+  width: 100%;
+  height: 100%;
+}
+
+.faq-item {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: var(--border-radius);
+  border-left: 4px solid #3b82f6;
+}
+
+.faq-item h5 {
+  margin: 0 0 0.5rem 0;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.faq-item p {
+  margin: 0;
+  color: #64748b;
+}
+
+.summary-content h5 {
+  color: #1e293b;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.summary-bullets {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.summary-bullets li {
+  margin-bottom: 0.5rem;
+  color: #64748b;
+}
+
+.summary-numbers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.number-item {
+  text-align: center;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: var(--border-radius);
+}
+
+.number-label {
+  display: block;
+  font-size: 0.9rem;
+  color: #64748b;
+  margin-bottom: 0.5rem;
+}
+
+.number-value {
+  display: block;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1e293b;
 }
 
 .anomaly-list, .feedback-list {
@@ -304,6 +448,7 @@ document.addEventListener('DOMContentLoaded', function() {
   loadAnomalies();
   loadFeedback();
   loadHierarchy();
+  loadAIData();
 });
 
 function initializeCharts() {
@@ -486,6 +631,157 @@ async function loadHierarchy() {
   // This would load the project hierarchy from the budget data
   const hierarchyTree = document.getElementById('hierarchyTree');
   hierarchyTree.innerHTML = '<p>Project hierarchy will be displayed here based on budget departments and vendors.</p>';
+}
+
+async function loadAIData() {
+  const budgetId = '<%= budget._id %>';
+  
+  try {
+    // Load AI Summary
+    const summaryResponse = await fetch(`/api/budget/${budgetId}/summary`);
+    const summaryData = await summaryResponse.json();
+    displayAISummary(summaryData);
+    
+    // Load AI FAQ
+    const faqResponse = await fetch(`/api/budget/${budgetId}/faq`);
+    const faqData = await faqResponse.json();
+    displayAIFAQ(faqData);
+    
+    // Load Sankey Data
+    const sankeyResponse = await fetch(`/api/budget/${budgetId}/sankey`);
+    const sankeyData = await sankeyResponse.json();
+    displaySankeyDiagram(sankeyData);
+    
+  } catch (error) {
+    console.error('Error loading AI data:', error);
+    displayAIError();
+  }
+}
+
+function displayAISummary(summary) {
+  const summaryContainer = document.getElementById('aiSummary');
+  
+  if (summary && summary.headline) {
+    summaryContainer.innerHTML = `
+      <div class="summary-content">
+        <h5>${summary.headline}</h5>
+        <ul class="summary-bullets">
+          ${summary.bullets ? summary.bullets.map(bullet => `<li>${bullet}</li>`).join('') : ''}
+        </ul>
+        <div class="summary-numbers">
+          <div class="number-item">
+            <span class="number-label">Total</span>
+            <span class="number-value">${summary.numbers?.total || 'N/A'}</span>
+          </div>
+          <div class="number-item">
+            <span class="number-label">Spent</span>
+            <span class="number-value">${summary.numbers?.spent || 'N/A'}</span>
+          </div>
+          <div class="number-item">
+            <span class="number-label">Remaining</span>
+            <span class="number-value">${summary.numbers?.remaining || 'N/A'}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  } else {
+    summaryContainer.innerHTML = '<p>Unable to generate AI summary at this time.</p>';
+  }
+}
+
+function displayAIFAQ(faq) {
+  const faqContainer = document.getElementById('aiFAQ');
+  
+  if (faq && Array.isArray(faq) && faq.length > 0) {
+    faqContainer.innerHTML = faq.map(item => `
+      <div class="faq-item">
+        <h5>${item.q}</h5>
+        <p>${item.a}</p>
+      </div>
+    `).join('');
+  } else {
+    faqContainer.innerHTML = '<p>Unable to generate FAQ at this time.</p>';
+  }
+}
+
+function displaySankeyDiagram(data) {
+  const svg = d3.select("#sankeyDiagram");
+  const container = document.getElementById('sankeyContainer');
+  const width = container.clientWidth;
+  const height = 400;
+
+  // Clear previous content
+  svg.selectAll("*").remove();
+  svg.attr("width", width).attr("height", height);
+
+  if (!data || !data.nodes || data.nodes.length === 0) {
+    svg.append("text")
+      .attr("x", width / 2)
+      .attr("y", height / 2)
+      .attr("text-anchor", "middle")
+      .style("font-size", "16px")
+      .style("fill", "#64748b")
+      .text("No fund flow data available");
+    return;
+  }
+
+  const sankey = d3.sankey()
+    .nodeId(d => d.id)
+    .nodeWidth(15)
+    .nodePadding(10)
+    .extent([[1, 1], [width - 1, height - 5]]);
+
+  const { nodes, links } = sankey(data);
+
+  // Render links
+  svg.append("g")
+    .selectAll("path")
+    .data(links)
+    .join("path")
+    .attr("d", d3.sankeyLinkHorizontal())
+    .attr("fill", "none")
+    .attr("stroke", "#999")
+    .attr("stroke-opacity", 0.5)
+    .attr("stroke-width", d => Math.max(1, d.width));
+
+  // Render nodes
+  svg.append("g")
+    .selectAll("rect")
+    .data(nodes)
+    .join("rect")
+    .attr("x", d => d.x0)
+    .attr("y", d => d.y0)
+    .attr("height", d => d.y1 - d.y0)
+    .attr("width", d => d.x1 - d.x0)
+    .attr("fill", d => {
+      const colors = {
+        'budget': '#2563eb',
+        'department': '#10b981',
+        'project': '#f59e0b',
+        'vendor': '#ef4444',
+        'transaction': '#8b5cf6'
+      };
+      return colors[d.type] || '#64748b';
+    });
+
+  // Render labels
+  svg.append("g")
+    .selectAll("text")
+    .data(nodes)
+    .join("text")
+    .attr("x", d => d.x0 < width / 2 ? d.x1 + 6 : d.x0 - 6)
+    .attr("y", d => (d.y1 + d.y0) / 2)
+    .attr("dy", "0.35em")
+    .attr("text-anchor", d => d.x0 < width / 2 ? "start" : "end")
+    .text(d => d.name)
+    .style("font-size", "12px")
+    .style("fill", "#374151");
+}
+
+function displayAIError() {
+  document.getElementById('aiSummary').innerHTML = '<p>Error loading AI data. Please try again later.</p>';
+  document.getElementById('aiFAQ').innerHTML = '<p>Error loading FAQ. Please try again later.</p>';
+  document.getElementById('sankeyContainer').innerHTML = '<p>Error loading fund flow visualization. Please try again later.</p>';
 }
 
 async function submitFeedback() {
