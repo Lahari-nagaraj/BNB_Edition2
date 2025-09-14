@@ -2644,6 +2644,234 @@ app.get("/budget/:id/visualization", async (req, res) => {
   }
 });
 
+// API endpoint for budget transactions
+app.get("/api/budget/:id/transactions", async (req, res) => {
+  try {
+    const transactions = await Transaction.find({ budgetId: req.params.id })
+      .populate('createdBy', 'name')
+      .populate('approvedBy', 'name')
+      .sort({ createdAt: -1 });
+    
+    res.json({ transactions });
+  } catch (error) {
+    console.error("Error fetching transactions:", error);
+    res.status(500).json({ error: "Failed to fetch transactions" });
+  }
+});
+
+// API endpoint for budget summary
+app.get("/api/budget/:id/summary", async (req, res) => {
+  try {
+    const budget = await Budget.findById(req.params.id);
+    if (!budget) {
+      return res.status(404).json({ error: "Budget not found" });
+    }
+    
+    const transactions = await Transaction.find({ budgetId: req.params.id });
+    const totalTransactions = transactions.length;
+    const avgTransactionAmount = totalTransactions > 0 ? 
+      transactions.reduce((sum, t) => sum + t.amount, 0) / totalTransactions : 0;
+    
+    const summary = {
+      headline: `${budget.name} - Budget Overview`,
+      bullets: [
+        `Total budget allocated: ₹${budget.totalBudget.toLocaleString()}`,
+        `Amount spent: ₹${budget.spent.toLocaleString()} (${((budget.spent / budget.totalBudget) * 100).toFixed(1)}%)`,
+        `Remaining budget: ₹${budget.remaining.toLocaleString()}`,
+        `Total transactions: ${totalTransactions}`,
+        `Average transaction amount: ₹${avgTransactionAmount.toLocaleString()}`
+      ],
+      numbers: {
+        total: `₹${budget.totalBudget.toLocaleString()}`,
+        spent: `₹${budget.spent.toLocaleString()}`,
+        remaining: `₹${budget.remaining.toLocaleString()}`
+      }
+    };
+    
+    res.json(summary);
+  } catch (error) {
+    console.error("Error generating summary:", error);
+    res.status(500).json({ error: "Failed to generate summary" });
+  }
+});
+
+// API endpoint for FAQ
+app.get("/api/budget/:id/faq", async (req, res) => {
+  try {
+    const budget = await Budget.findById(req.params.id);
+    if (!budget) {
+      return res.status(404).json({ error: "Budget not found" });
+    }
+    
+    const faq = [
+      {
+        q: "What is the total budget for this project?",
+        a: `The total budget allocated for ${budget.name} is ₹${budget.totalBudget.toLocaleString()}.`
+      },
+      {
+        q: "How much has been spent so far?",
+        a: `As of now, ₹${budget.spent.toLocaleString()} has been spent, which represents ${((budget.spent / budget.totalBudget) * 100).toFixed(1)}% of the total budget.`
+      },
+      {
+        q: "What is the remaining budget?",
+        a: `The remaining budget is ₹${budget.remaining.toLocaleString()}, which is ${((budget.remaining / budget.totalBudget) * 100).toFixed(1)}% of the total allocation.`
+      },
+      {
+        q: "What is the current status of this budget?",
+        a: `The budget is currently in "${budget.status}" status and is managed by the ${budget.department} department.`
+      },
+      {
+        q: "Who approved this budget?",
+        a: `This budget was approved by ${budget.approvedBy} for the fiscal year ${budget.fiscalYear}.`
+      }
+    ];
+    
+    res.json(faq);
+  } catch (error) {
+    console.error("Error generating FAQ:", error);
+    res.status(500).json({ error: "Failed to generate FAQ" });
+  }
+});
+
+// API endpoint for Sankey diagram data
+app.get("/api/budget/:id/sankey", async (req, res) => {
+  try {
+    const budget = await Budget.findById(req.params.id);
+    if (!budget) {
+      return res.status(404).json({ error: "Budget not found" });
+    }
+    
+    const transactions = await Transaction.find({ budgetId: req.params.id });
+    
+    // Create simple Sankey data structure
+    const nodes = [
+      { id: "budget", name: budget.name, type: "budget" },
+      { id: "department", name: budget.department, type: "department" },
+      { id: "spent", name: "Spent", type: "transaction" },
+      { id: "remaining", name: "Remaining", type: "transaction" }
+    ];
+    
+    const links = [
+      { source: "budget", target: "department", value: budget.totalBudget },
+      { source: "department", target: "spent", value: budget.spent },
+      { source: "department", target: "remaining", value: budget.remaining }
+    ];
+    
+    res.json({ nodes, links });
+  } catch (error) {
+    console.error("Error generating Sankey data:", error);
+    res.status(500).json({ error: "Failed to generate Sankey data" });
+  }
+});
+
+// API endpoint for anomalies
+app.get("/api/anomalies/:id", async (req, res) => {
+  try {
+    const budget = await Budget.findById(req.params.id);
+    if (!budget) {
+      return res.status(404).json({ error: "Budget not found" });
+    }
+    
+    // Generate mock anomalies based on budget data
+    const anomalies = [];
+    
+    // Check for overspending
+    if (budget.spent > budget.totalBudget * 0.9) {
+      anomalies.push({
+        _id: "anomaly_1",
+        title: "High Budget Utilization",
+        description: `Budget utilization is at ${((budget.spent / budget.totalBudget) * 100).toFixed(1)}%, which is above the 90% threshold.`,
+        severity: budget.spent > budget.totalBudget ? "critical" : "high",
+        detectedAt: new Date()
+      });
+    }
+    
+    // Check for unusual spending patterns
+    if (budget.spent > 0 && budget.remaining < budget.totalBudget * 0.1) {
+      anomalies.push({
+        _id: "anomaly_2",
+        title: "Low Remaining Budget",
+        description: `Only ${((budget.remaining / budget.totalBudget) * 100).toFixed(1)}% of the budget remains. Consider reviewing spending patterns.`,
+        severity: "medium",
+        detectedAt: new Date()
+      });
+    }
+    
+    res.json({ anomalies });
+  } catch (error) {
+    console.error("Error fetching anomalies:", error);
+    res.status(500).json({ error: "Failed to fetch anomalies" });
+  }
+});
+
+// API endpoint for feedback
+app.get("/api/feedback/:id", async (req, res) => {
+  try {
+    // For now, return empty feedback array
+    // In a real implementation, you would fetch from a Feedback model
+    res.json({ feedback: [] });
+  } catch (error) {
+    console.error("Error fetching feedback:", error);
+    res.status(500).json({ error: "Failed to fetch feedback" });
+  }
+});
+
+// API endpoint for chatbot
+app.post("/api/chatbot/ask", async (req, res) => {
+  try {
+    const { message, budgetId, context } = req.body;
+    
+    if (!message || !budgetId) {
+      return res.status(400).json({ error: "Message and budget ID are required" });
+    }
+    
+    // Simple chatbot responses based on keywords
+    let response = "I'm here to help you understand your budget data. ";
+    
+    if (message.toLowerCase().includes('budget') || message.toLowerCase().includes('total')) {
+      response += `Your total budget is ₹${context.totalBudget.toLocaleString()}. `;
+    }
+    
+    if (message.toLowerCase().includes('spent') || message.toLowerCase().includes('expense')) {
+      response += `You have spent ₹${context.spent.toLocaleString()} so far. `;
+    }
+    
+    if (message.toLowerCase().includes('remaining') || message.toLowerCase().includes('left')) {
+      response += `You have ₹${context.remaining.toLocaleString()} remaining in your budget. `;
+    }
+    
+    if (message.toLowerCase().includes('percentage') || message.toLowerCase().includes('%')) {
+      const percentage = ((context.spent / context.totalBudget) * 100).toFixed(1);
+      response += `You have used ${percentage}% of your total budget. `;
+    }
+    
+    if (message.toLowerCase().includes('status')) {
+      response += `Your budget is currently in "${context.status}" status. `;
+    }
+    
+    if (message.toLowerCase().includes('department')) {
+      response += `This budget is managed by the ${context.department} department. `;
+    }
+    
+    // Add some general advice
+    if (context.spent > context.totalBudget * 0.8) {
+      response += "⚠️ You're approaching your budget limit. Consider reviewing your spending. ";
+    } else if (context.spent < context.totalBudget * 0.3) {
+      response += "✅ You're doing well with your budget management. ";
+    }
+    
+    response += "Is there anything specific you'd like to know about your budget?";
+    
+    res.json({ 
+      success: true, 
+      response: response 
+    });
+  } catch (error) {
+    console.error("Error processing chatbot request:", error);
+    res.status(500).json({ error: "Failed to process request" });
+  }
+});
+
 app.get("/debug/transaction", async (req, res) => {
   try {
     res.json({ 

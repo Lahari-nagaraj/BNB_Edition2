@@ -210,74 +210,111 @@
 </div>
 
 <!-- Chart.js CDN -->
-<script src="https:<!-- D3.js for Sankey diagram -->
-<script src="https:<script src="https:
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js"></script>
+<!-- D3.js for Sankey diagram -->
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
 <!-- Budget Data -->
+<script type="application/json" id="budget-data">
+{
+  "spent": <%= budget.spent %>,
+  "remaining": <%= budget.remaining %>,
+  "totalBudget": <%= budget.totalBudget %>,
+  "name": "<%= budget.name %>",
+  "department": "<%= budget.department %>",
+  "status": "<%= budget.status %>"
+}
+</script>
 <script>
-  window.budgetData = {
-    spent: <%= budget.spent %>,
-    remaining: <%= budget.remaining %>,
-    totalBudget: <%= budget.totalBudget %>,
-    name: '<%= budget.name %>',
-    department: '<%= budget.department %>',
-    status: '<%= budget.status %>'
-  };
+  // Get budget data from JSON script tag
+  const budgetDataScript = document.getElementById('budget-data');
+  window.budgetData = budgetDataScript ? JSON.parse(budgetDataScript.textContent) : {};
 </script>
 
 <style>
   .metrics-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1.5rem;
     margin-bottom: 2rem;
   }
 
   .metric-card {
-    background: var(--card-gradient);
-    padding: 1.5rem;
-    border-radius: var(--border-radius-lg);
-    box-shadow: var(--shadow-light);
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    padding: 2rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     display: flex;
     align-items: center;
-    gap: 1rem;
-    transition: var(--transition);
+    gap: 1.5rem;
+    transition: all 0.3s ease;
+    border: 1px solid #e2e8f0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #3b82f6, #10b981, #f59e0b, #ef4444);
   }
 
   .metric-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-medium);
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
   }
 
   .metric-icon {
-    font-size: 2.5rem;
-    opacity: 0.8;
+    font-size: 3rem;
+    opacity: 0.9;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+  }
+
+  .metric-content {
+    flex: 1;
   }
 
   .metric-content h3 {
     margin: 0 0 0.5rem 0;
-    color: var(--secondary-color);
+    color: #64748b;
     font-size: 0.9rem;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
 
   .metric-value {
     margin: 0;
-    font-size: 1.8rem;
+    font-size: 2rem;
     font-weight: 700;
-    color: var(--primary-color);
+    color: #1e293b;
+    line-height: 1.2;
   }
 
   .metric-percentage {
-    margin: 0.25rem 0 0 0;
+    margin: 0.5rem 0 0 0;
     font-size: 0.9rem;
-    color: var(--success-color);
+    color: #10b981;
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .metric-percentage::before {
+    content: '📈';
+    font-size: 0.8rem;
   }
 
   .metric-subtitle {
-    margin: 0.25rem 0 0 0;
+    margin: 0.5rem 0 0 0;
     font-size: 0.8rem;
-    color: var(--secondary-color);
+    color: #64748b;
+    font-weight: 500;
   }
 
   .charts-section {
@@ -290,19 +327,30 @@
   .chart-container {
     background: white;
     padding: 1.5rem;
-    border-radius: var(--border-radius-lg);
-    box-shadow: var(--shadow-light);
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s ease;
+  }
+
+  .chart-container:hover {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
   }
 
   .chart-container h3 {
-    margin: 0 0 1rem 0;
-    color: var(--secondary-color);
-    font-size: 1.1rem;
+    margin: 0 0 1.5rem 0;
+    color: #1e293b;
+    font-size: 1.2rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
 
   .chart-container canvas {
-    max-height: 300px;
-    min-height: 250px;
+    max-height: 350px;
+    min-height: 300px;
     width: 100% !important;
     height: auto !important;
   }
@@ -311,12 +359,30 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 250px;
+    height: 300px;
     color: #64748b;
     font-style: italic;
-    background: #f8f9fa;
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
     border-radius: 8px;
-    border: 1px dashed #e2e8f0;
+    border: 2px dashed #cbd5e1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .chart-loading::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    animation: shimmer 2s infinite;
+  }
+
+  @keyframes shimmer {
+    0% { left: -100%; }
+    100% { left: 100%; }
   }
 
   .anomaly-section,
@@ -524,9 +590,44 @@
     margin-left: 2rem;
   }
 
+  .dashboard-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 16px;
+    margin-bottom: 2rem;
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+  }
+
+  .dashboard-header h2 {
+    margin: 0 0 1rem 0;
+    font-size: 2rem;
+    font-weight: 700;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
   .header-actions {
     display: flex;
     gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .header-actions button {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+  }
+
+  .header-actions button:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
   }
 
   /* Chatbot Styles */
@@ -786,6 +887,7 @@
         console.warn("Failed to fetch transactions:", error);
       }
 
+      // Initialize Overview Chart (Budget vs Spent)
       const overviewCtx = document
         .getElementById("overviewChart")
         .getContext("2d");
@@ -795,7 +897,8 @@
           {
             data: [budgetSpent, budgetRemaining],
             backgroundColor: ["#ef4444", "#10b981"],
-            borderWidth: 0,
+            borderWidth: 2,
+            borderColor: "#ffffff",
           },
         ],
       };
@@ -807,7 +910,23 @@
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: { position: "bottom" },
+            legend: { 
+              position: "bottom",
+              labels: {
+                padding: 20,
+                usePointStyle: true
+              }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  const value = context.parsed;
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = ((value / total) * 100).toFixed(1);
+                  return `${context.label}: ₹${value.toLocaleString()} (${percentage}%)`;
+                }
+              }
+            }
           },
         },
       });
@@ -815,6 +934,7 @@
       document.getElementById("overviewChartLoading").style.display = "none";
       document.getElementById("overviewChart").style.display = "block";
 
+      // Initialize Category Chart
       const categoryCtx = document
         .getElementById("categoryChart")
         .getContext("2d");
@@ -828,12 +948,21 @@
       const categoryLabels = Object.keys(categoryData);
       const categoryAmounts = Object.values(categoryData);
 
+      // If no transactions, show a default chart
+      const finalCategoryLabels = categoryLabels.length > 0 ? categoryLabels : ["General", "Office Supplies", "Travel", "Equipment"];
+      const finalCategoryAmounts = categoryAmounts.length > 0 ? categoryAmounts : [
+        budgetSpent * 0.4, 
+        budgetSpent * 0.3, 
+        budgetSpent * 0.2, 
+        budgetSpent * 0.1
+      ];
+
       const categoryChartData = {
-        labels: categoryLabels.length > 0 ? categoryLabels : ["General"],
+        labels: finalCategoryLabels,
         datasets: [
           {
             label: "Amount (₹)",
-            data: categoryAmounts.length > 0 ? categoryAmounts : [budgetSpent],
+            data: finalCategoryAmounts,
             backgroundColor: [
               "#3b82f6",
               "#10b981",
@@ -841,8 +970,11 @@
               "#ef4444",
               "#8b5cf6",
               "#06b6d4",
+              "#f97316",
+              "#84cc16"
             ],
             borderWidth: 1,
+            borderColor: "#ffffff",
           },
         ],
       };
@@ -861,17 +993,24 @@
                   return "₹" + value.toLocaleString();
                 },
               },
+              grid: {
+                color: "rgba(0,0,0,0.1)"
+              }
             },
+            x: {
+              grid: {
+                display: false
+              }
+            }
           },
           plugins: {
+            legend: {
+              display: false
+            },
             tooltip: {
               callbacks: {
                 label: function (context) {
-                  return (
-                    context.dataset.label +
-                    ": ₹" +
-                    context.parsed.y.toLocaleString()
-                  );
+                  return `${context.label}: ₹${context.parsed.y.toLocaleString()}`;
                 },
               },
             },
@@ -882,6 +1021,7 @@
       document.getElementById("categoryChartLoading").style.display = "none";
       document.getElementById("categoryChart").style.display = "block";
 
+      // Initialize Timeline Chart
       const timelineCtx = document
         .getElementById("timelineChart")
         .getContext("2d");
@@ -898,16 +1038,26 @@
       const timelineLabels = Object.keys(monthlyData).sort();
       const timelineAmounts = timelineLabels.map((month) => monthlyData[month]);
 
+      // If no transactions, create sample timeline data
+      const finalTimelineLabels = timelineLabels.length > 0 ? timelineLabels : 
+        ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+      const finalTimelineAmounts = timelineAmounts.length > 0 ? timelineAmounts : 
+        [budgetSpent * 0.1, budgetSpent * 0.15, budgetSpent * 0.2, budgetSpent * 0.25, budgetSpent * 0.2, budgetSpent * 0.1];
+
       const timelineChartData = {
-        labels: timelineLabels.length > 0 ? timelineLabels : ["Current Month"],
+        labels: finalTimelineLabels,
         datasets: [
           {
             label: "Monthly Spending",
-            data: timelineAmounts.length > 0 ? timelineAmounts : [budgetSpent],
+            data: finalTimelineAmounts,
             borderColor: "#3b82f6",
             backgroundColor: "rgba(59, 130, 246, 0.1)",
             tension: 0.4,
             fill: true,
+            pointBackgroundColor: "#3b82f6",
+            pointBorderColor: "#ffffff",
+            pointBorderWidth: 2,
+            pointRadius: 6,
           },
         ],
       };
@@ -926,17 +1076,24 @@
                   return "₹" + value.toLocaleString();
                 },
               },
+              grid: {
+                color: "rgba(0,0,0,0.1)"
+              }
             },
+            x: {
+              grid: {
+                display: false
+              }
+            }
           },
           plugins: {
+            legend: {
+              display: false
+            },
             tooltip: {
               callbacks: {
                 label: function (context) {
-                  return (
-                    context.dataset.label +
-                    ": ₹" +
-                    context.parsed.y.toLocaleString()
-                  );
+                  return `${context.dataset.label}: ₹${context.parsed.y.toLocaleString()}`;
                 },
               },
             },
@@ -947,6 +1104,7 @@
       document.getElementById("timelineChartLoading").style.display = "none";
       document.getElementById("timelineChart").style.display = "block";
 
+      // Initialize Utilization Chart
       const utilizationCtx = document
         .getElementById("utilizationChart")
         .getContext("2d");
@@ -969,7 +1127,8 @@
                 : "#10b981",
               "#e5e7eb",
             ],
-            borderWidth: 0,
+            borderWidth: 2,
+            borderColor: "#ffffff",
           },
         ],
       };
@@ -982,11 +1141,20 @@
           maintainAspectRatio: false,
           cutout: "70%",
           plugins: {
-            legend: { position: "bottom" },
+            legend: { 
+              position: "bottom",
+              labels: {
+                padding: 20,
+                usePointStyle: true
+              }
+            },
             tooltip: {
               callbacks: {
                 label: function (context) {
-                  return context.label + ": " + context.parsed + "%";
+                  const value = context.parsed;
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = ((value / total) * 100).toFixed(1);
+                  return `${context.label}: ${percentage}%`;
                 },
               },
             },
@@ -996,9 +1164,14 @@
 
       document.getElementById("utilizationChartLoading").style.display = "none";
       document.getElementById("utilizationChart").style.display = "block";
+      
+      console.log("All charts initialized successfully!");
     } catch (error) {
       console.error("Error initializing charts:", error);
-      initializeFallbackCharts();
+      // Show error message instead of fallback charts
+      document.querySelectorAll(".chart-loading").forEach((loading) => {
+        loading.innerHTML = '<div style="color: #ef4444; text-align: center; padding: 2rem;">Error loading chart data</div>';
+      });
     }
   }
 
@@ -1301,7 +1474,7 @@
   function displaySankeyDiagram(data) {
     const svg = d3.select("#sankeyDiagram");
     const container = document.getElementById("sankeyContainer");
-    const width = container.clientWidth;
+    const width = container.clientWidth || 800;
     const height = 400;
 
     svg.selectAll("*").remove();
@@ -1319,61 +1492,77 @@
       return;
     }
 
-    const sankey = d3
-      .sankey()
-      .nodeId((d) => d.id)
-      .nodeWidth(15)
-      .nodePadding(10)
-      .extent([
-        [1, 1],
-        [width - 1, height - 5],
-      ]);
+    try {
+      // Create Sankey diagram using D3
+      const sankey = d3.sankey()
+        .nodeId(d => d.id)
+        .nodeWidth(15)
+        .nodePadding(10)
+        .extent([[1, 1], [width - 1, height - 5]]);
 
-    const { nodes, links } = sankey(data);
+      const { nodes, links } = sankey(data);
 
-    svg
-      .append("g")
-      .selectAll("path")
-      .data(links)
-      .join("path")
-      .attr("d", d3.sankeyLinkHorizontal())
-      .attr("fill", "none")
-      .attr("stroke", "#999")
-      .attr("stroke-opacity", 0.5)
-      .attr("stroke-width", (d) => Math.max(1, d.width));
+      // Create gradient definitions
+      const defs = svg.append("defs");
+      
+      // Add links
+      svg.append("g")
+        .selectAll("path")
+        .data(links)
+        .join("path")
+        .attr("d", d3.sankeyLinkHorizontal())
+        .attr("fill", "none")
+        .attr("stroke", "#999")
+        .attr("stroke-opacity", 0.5)
+        .attr("stroke-width", d => Math.max(1, d.width));
 
-    svg
-      .append("g")
-      .selectAll("rect")
-      .data(nodes)
-      .join("rect")
-      .attr("x", (d) => d.x0)
-      .attr("y", (d) => d.y0)
-      .attr("height", (d) => d.y1 - d.y0)
-      .attr("width", (d) => d.x1 - d.x0)
-      .attr("fill", (d) => {
-        const colors = {
-          budget: "#2563eb",
-          department: "#10b981",
-          project: "#f59e0b",
-          vendor: "#ef4444",
-          transaction: "#8b5cf6",
-        };
-        return colors[d.type] || "#64748b";
-      });
+      // Add nodes
+      svg.append("g")
+        .selectAll("rect")
+        .data(nodes)
+        .join("rect")
+        .attr("x", d => d.x0)
+        .attr("y", d => d.y0)
+        .attr("height", d => d.y1 - d.y0)
+        .attr("width", d => d.x1 - d.x0)
+        .attr("fill", d => {
+          const colors = {
+            budget: "#2563eb",
+            department: "#10b981",
+            project: "#f59e0b",
+            vendor: "#ef4444",
+            transaction: "#8b5cf6",
+          };
+          return colors[d.type] || "#64748b";
+        })
+        .attr("stroke", "#fff")
+        .attr("stroke-width", 1);
 
-    svg
-      .append("g")
-      .selectAll("text")
-      .data(nodes)
-      .join("text")
-      .attr("x", (d) => (d.x0 < width / 2 ? d.x1 + 6 : d.x0 - 6))
-      .attr("y", (d) => (d.y1 + d.y0) / 2)
-      .attr("dy", "0.35em")
-      .attr("text-anchor", (d) => (d.x0 < width / 2 ? "start" : "end"))
-      .text((d) => d.name)
-      .style("font-size", "12px")
-      .style("fill", "#374151");
+      // Add labels
+      svg.append("g")
+        .selectAll("text")
+        .data(nodes)
+        .join("text")
+        .attr("x", d => d.x0 < width / 2 ? d.x1 + 6 : d.x0 - 6)
+        .attr("y", d => (d.y1 + d.y0) / 2)
+        .attr("dy", "0.35em")
+        .attr("text-anchor", d => d.x0 < width / 2 ? "start" : "end")
+        .text(d => d.name)
+        .style("font-size", "12px")
+        .style("fill", "#374151")
+        .style("font-weight", "500");
+        
+    } catch (error) {
+      console.error("Error rendering Sankey diagram:", error);
+      svg
+        .append("text")
+        .attr("x", width / 2)
+        .attr("y", height / 2)
+        .attr("text-anchor", "middle")
+        .style("font-size", "16px")
+        .style("fill", "#ef4444")
+        .text("Error rendering fund flow diagram");
+    }
   }
 
   function displayAIError() {
