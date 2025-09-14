@@ -676,14 +676,94 @@ app.get("/budget/:id/edit", async (req, res) => {
   });
 });
 app.post("/budget/:id/edit", async (req, res) => {
-  const budget = await Budget.findById(req.params.id);
-  if (!budget) return res.status(404).send("Budget not found");
-  if (req.session.userId != budget.creator.toString())
-    return res.status(403).send("Unauthorized");
-  const { description, amount, allocatedTo } = req.body;
-  budget.expenses.push({ description, amount, allocatedTo });
-  await budget.save();
-  res.redirect(`/budget/${budget._id}`);
+  if (!req.session.isAdmin) return res.status(403).send("Admin access required");
+  
+  try {
+    const budget = await Budget.findById(req.params.id);
+    if (!budget) return res.status(404).send("Budget not found");
+    if (req.session.userId != budget.creator.toString())
+      return res.status(403).send("Unauthorized");
+    
+    const {
+      name,
+      department,
+      state,
+      city,
+      totalBudget,
+      fiscalYear,
+      approvedBy,
+      type,
+      projectType,
+      status,
+      visibility,
+      priority,
+      additionalBudget,
+      budgetReason,
+      collegeName,
+      collegeType,
+      editorEmail,
+      editorPassword
+    } = req.body;
+    
+    // Store old values for audit log
+    const oldData = budget.toObject();
+    
+    // Update basic information
+    budget.name = name;
+    budget.department = department;
+    budget.state = state;
+    budget.city = city;
+    budget.fiscalYear = fiscalYear;
+    budget.approvedBy = approvedBy;
+    budget.type = type;
+    budget.projectType = projectType;
+    budget.status = status;
+    
+    // Handle additional budget allocation
+    if (additionalBudget && parseFloat(additionalBudget) > 0) {
+      const additionalAmount = parseFloat(additionalBudget);
+      budget.totalBudget += additionalAmount;
+      budget.remaining = budget.totalBudget - budget.spent;
+      
+      // Log budget change
+      await auditLog("budget_increase", "Budget", budget._id, budget.name, req, 
+        { oldBudget: oldData.totalBudget }, 
+        { newBudget: budget.totalBudget, reason: budgetReason, additionalAmount });
+    } else {
+      // Update total budget if changed
+      const newTotalBudget = parseFloat(totalBudget);
+      if (newTotalBudget !== budget.totalBudget) {
+        budget.totalBudget = newTotalBudget;
+        budget.remaining = budget.totalBudget - budget.spent;
+      }
+    }
+    
+    // Update college information if applicable
+    if (projectType === 'college') {
+      budget.collegeName = collegeName;
+      budget.collegeType = collegeType;
+    }
+    
+    // Update editor credentials if provided
+    if (editorEmail && editorPassword) {
+      budget.editorEmail = editorEmail;
+      budget.editorPassword = editorPassword;
+    }
+    
+    await budget.save();
+    
+    // Log the edit action
+    await auditLog("edit", "Budget", budget._id, budget.name, req, oldData, budget.toObject());
+    
+    res.redirect(`/budget/${budget._id}?success=Budget updated successfully`);
+  } catch (error) {
+    console.error('Error updating budget:', error);
+    res.render("editBudget", {
+      title: `Edit ${budget.name}`,
+      budget,
+      error: "Failed to update budget. Please try again."
+    });
+  }
 });
 
 app.get("/dashboard", async (req, res) => {
@@ -723,13 +803,23 @@ app.get("/admin/dashboard", async (req, res) => {
   if (!req.session.isAdmin) return res.status(403).send("Unauthorized");
   
   try {
+    // Get only admin's own budgets
     const budgets = await Budget.find({ creator: req.session.userId })
       .populate("creator")
       .populate("assignedEditors")
       .sort({ createdAt: -1 });
     
+    // Get budget IDs for filtering
+    const budgetIds = budgets.map(b => b._id);
+    
+    // Get editor stats for editors assigned to admin's budgets
     const editorStats = await User.aggregate([
-      { $match: { role: "editor" } },
+      { 
+        $match: { 
+          role: "editor",
+          assignedBudgets: { $in: budgetIds }
+        } 
+      },
       {
         $group: {
           _id: null,
@@ -739,13 +829,15 @@ app.get("/admin/dashboard", async (req, res) => {
       }
     ]);
     
-        const recentTransactions = await Transaction.find()
+    // Get recent transactions only for admin's budgets
+    const recentTransactions = await Transaction.find({ budgetId: { $in: budgetIds } })
       .populate('createdBy', 'name email')
       .populate('budgetId', 'name department')
       .sort({ createdAt: -1 })
       .limit(10);
     
-        const totalTransactions = await Transaction.countDocuments();
+    // Get total transactions count for admin's budgets only
+    const totalTransactions = await Transaction.countDocuments({ budgetId: { $in: budgetIds } });
     
     const stats = editorStats[0] || { totalEditors: 0, activeEditors: 0 };
     stats.totalTransactions = totalTransactions;

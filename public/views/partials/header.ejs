@@ -19,7 +19,7 @@
   <nav>
     <% if(session.userId){ %>
     <a href="/">Home</a>
-    <a href="/budget/new">New Project</a>
+    <% if(session.userRole !== 'editor'){ %><a href="/budget/new">New Project</a><% } %>
     <% if(session.isAdmin){ %><a href="/admin/dashboard">Admin Dashboard</a><% } %>
     <% if(session.userRole === 'editor'){ %><a href="/editor/dashboard">Editor Dashboard</a><% } %>
     <% if(session.userRole === 'manager' || session.userRole === 'public'){ %><a href="/dashboard">My Dashboard</a><% } %>

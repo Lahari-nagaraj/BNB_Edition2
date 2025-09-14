@@ -40,45 +40,58 @@
 
     <!-- Recent Transactions Section -->
     <div class="recent-transactions-section">
-      <h3>💰 Recent Transactions</h3>
-      <div class="transactions-table">
+      <div class="section-header">
+        <h3>💰 Recent Transactions</h3>
+        <div class="section-actions">
+          <a href="/admin/transactions/pending">
+            <button class="btn-warning">⏳ Review Pending</button>
+          </a>
+        </div>
+      </div>
+      <div class="transactions-container">
         <% if(recentTransactions && recentTransactions.length > 0) { %>
-          <table>
-            <thead>
-              <tr>
-                <th>Description</th>
-                <th>Amount</th>
-                <th>Budget</th>
-                <th>Status</th>
-                <th>Date</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% recentTransactions.slice(0, 10).forEach(transaction => { %>
-                <tr>
-                  <td><%= transaction.description %></td>
-                  <td class="amount-display" data-amount="<%= transaction.amount %>">₹<%= transaction.amount.toLocaleString() %></td>
-                  <td><%= transaction.budgetName %></td>
-                  <td>
-                    <span class="status-badge status-<%= transaction.status %>">
-                      <%= transaction.status %>
-                    </span>
-                  </td>
-                  <td><%= new Date(transaction.createdAt).toLocaleDateString() %></td>
-                  <td>
-                    <a href="/budget/<%= transaction.budgetId %>" class="btn-small">View</a>
-                    <% if(transaction.status === 'pending') { %>
-                      <a href="/admin/transactions/pending" class="btn-small btn-warning">Review</a>
-                    <% } %>
-                  </td>
-                </tr>
-              <% }) %>
-            </tbody>
-          </table>
+          <div class="transactions-grid">
+            <% recentTransactions.slice(0, 8).forEach(transaction => { %>
+              <div class="transaction-card">
+                <div class="transaction-header">
+                  <h4><%= transaction.description %></h4>
+                  <span class="status-badge status-<%= transaction.status %>">
+                    <%= transaction.status %>
+                  </span>
+                </div>
+                <div class="transaction-details">
+                  <div class="detail-row">
+                    <span class="label">Amount:</span>
+                    <span class="amount-display" data-amount="<%= transaction.amount %>">₹<%= transaction.amount.toLocaleString() %></span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="label">Project:</span>
+                    <span><%= transaction.budgetName || transaction.budgetId?.name || 'N/A' %></span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="label">Department:</span>
+                    <span><%= transaction.budgetId?.department || 'N/A' %></span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="label">Date:</span>
+                    <span><%= new Date(transaction.createdAt).toLocaleDateString() %></span>
+                  </div>
+                </div>
+                <div class="transaction-actions">
+                  <a href="/budget/<%= transaction.budgetId %>" class="btn-small">View Project</a>
+                  <% if(transaction.status === 'pending') { %>
+                    <a href="/admin/transactions/pending" class="btn-small btn-warning">Review</a>
+                  <% } %>
+                </div>
+              </div>
+            <% }) %>
+          </div>
         <% } else { %>
           <div class="no-transactions">
-            <p>No recent transactions found.</p>
+            <div class="empty-icon">📋</div>
+            <h4>No Recent Transactions</h4>
+            <p>No transactions found for your projects.</p>
+            <button onclick="showAddTransactionModal()" class="btn-primary">Add First Transaction</button>
           </div>
         <% } %>
       </div>
@@ -308,9 +321,177 @@
   color: var(--secondary-color);
   margin-bottom: 2rem;
 }
+
+/* Recent Transactions Styling */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.section-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.transactions-container {
+  margin-top: 1rem;
+}
+
+.transactions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+
+.transaction-card {
+  background: var(--card-gradient);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-light);
+  padding: 1.5rem;
+  border-left: 4px solid var(--primary-color);
+  transition: all 0.3s ease;
+}
+
+.transaction-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-medium);
+}
+
+.transaction-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.transaction-header h4 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 1.1rem;
+  font-weight: 600;
+  flex: 1;
+  margin-right: 1rem;
+}
+
+.transaction-details {
+  margin-bottom: 1rem;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  padding: 0.25rem 0;
+}
+
+.detail-row:last-child {
+  margin-bottom: 0;
+}
+
+.detail-row .label {
+  font-weight: 500;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.detail-row span:not(.label) {
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.transaction-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.btn-small {
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.btn-small {
+  background: var(--primary-color);
+  color: white;
+}
+
+.btn-small:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+.btn-warning {
+  background: #f59e0b;
+  color: white;
+}
+
+.btn-warning:hover {
+  background: #d97706;
+}
+
+.no-transactions {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: var(--card-gradient);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-light);
+}
+
+.empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.no-transactions h4 {
+  color: var(--secondary-color);
+  margin-bottom: 0.5rem;
+}
+
+.no-transactions p {
+  color: var(--secondary-color);
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .transactions-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
+  .transaction-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .transaction-actions {
+    justify-content: flex-start;
+  }
+}
 </style>
 
+<script type="application/json" id="budgets-data"><%- JSON.stringify(budgets) %></script>
 <script>
+// Get budgets data from JSON script tag
+const budgetsDataScript = document.getElementById('budgets-data');
+window.budgetsData = budgetsDataScript ? JSON.parse(budgetsDataScript.textContent) : [];
+
 function copyToClipboard(elementId) {
   const element = document.getElementById(elementId);
   const text = element.textContent;
@@ -643,15 +824,27 @@ function createAddTransactionModal() {
       <form id="adminTransactionForm" enctype="multipart/form-data">
         <div class="form-row">
           <div class="form-group">
-            <label for="adminBudgetId">Select Budget *</label>
-            <select id="adminBudgetId" name="budgetId" required>
-              <option value="">Choose a budget...</option>
-              <% budgets.forEach(budget => { %>
-                <option value="<%= budget._id %>"><%= budget.name %> - <%= budget.department %></option>
+            <label for="adminDepartment">Select Department *</label>
+            <select id="adminDepartment" name="department" required onchange="updateBudgetOptions()">
+              <option value="">Choose a department...</option>
+              <% 
+                const departments = [...new Set(budgets.map(b => b.department))];
+                departments.forEach(dept => { 
+              %>
+                <option value="<%= dept %>"><%= dept %></option>
               <% }) %>
             </select>
           </div>
           
+          <div class="form-group">
+            <label for="adminBudgetId">Select Project *</label>
+            <select id="adminBudgetId" name="budgetId" required disabled>
+              <option value="">First select a department...</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
           <div class="form-group">
             <label for="adminCategory">Category</label>
             <select id="adminCategory" name="category">
@@ -663,6 +856,11 @@ function createAddTransactionModal() {
               <option value="maintenance">Maintenance</option>
               <option value="other">Other</option>
             </select>
+          </div>
+          
+          <div class="form-group">
+            <label for="adminVendor">Vendor/Supplier</label>
+            <input type="text" id="adminVendor" name="vendor" placeholder="Enter vendor name">
           </div>
         </div>
 
@@ -680,13 +878,17 @@ function createAddTransactionModal() {
 
         <div class="form-row">
           <div class="form-group">
-            <label for="adminVendor">Vendor/Supplier</label>
-            <input type="text" id="adminVendor" name="vendor" placeholder="Enter vendor name">
+            <label for="adminDate">Date</label>
+            <input type="date" id="adminDate" name="date">
           </div>
           
           <div class="form-group">
-            <label for="adminDate">Date</label>
-            <input type="date" id="adminDate" name="date">
+            <label for="adminPriority">Priority</label>
+            <select id="adminPriority" name="priority">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+            </select>
           </div>
         </div>
 
@@ -766,9 +968,10 @@ async function handleAdminTransactionSubmit(event) {
     const description = formData.get('description');
   const amount = formData.get('amount');
   const budgetId = formData.get('budgetId');
+  const department = formData.get('department');
   
-  if (!description || !amount || !budgetId) {
-    alert('Please fill in all required fields');
+  if (!description || !amount || !budgetId || !department) {
+    alert('Please fill in all required fields including department and project selection');
     return;
   }
   
@@ -806,6 +1009,34 @@ async function handleAdminTransactionSubmit(event) {
 
 function showBulkUploadModal() {
   alert('Bulk upload feature coming soon!');
+}
+
+// Department-based budget filtering
+function updateBudgetOptions() {
+  const departmentSelect = document.getElementById('adminDepartment');
+  const budgetSelect = document.getElementById('adminBudgetId');
+  const selectedDepartment = departmentSelect.value;
+  
+  // Clear existing options
+  budgetSelect.innerHTML = '<option value="">Choose a project...</option>';
+  
+  if (selectedDepartment) {
+    budgetSelect.disabled = false;
+    
+    // Filter budgets by selected department
+    const budgets = window.budgetsData || [];
+    const filteredBudgets = budgets.filter(budget => budget.department === selectedDepartment);
+    
+    filteredBudgets.forEach(budget => {
+      const option = document.createElement('option');
+      option.value = budget._id;
+      option.textContent = `${budget.name} (₹${budget.totalBudget.toLocaleString()})`;
+      budgetSelect.appendChild(option);
+    });
+  } else {
+    budgetSelect.disabled = true;
+    budgetSelect.innerHTML = '<option value="">First select a department...</option>';
+  }
 }
 
 function formatFileSize(bytes) {

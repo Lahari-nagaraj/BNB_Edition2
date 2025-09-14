@@ -122,9 +122,7 @@
   <div class="dashboard-section">
     <h3>⚡ Quick Actions</h3>
     <div class="quick-actions">
-      <a href="/editor/transaction/new"
-        ><button class="btn-primary">➕ Add Transaction</button></a
-      >
+      <button onclick="showAddTransactionModal()" class="btn-primary">➕ Add Transaction</button>
       <a href="/editor/receipts/upload"
         ><button class="btn-secondary">📄 Upload Receipt</button></a
       >
@@ -419,6 +417,419 @@
       }
     });
   });
+</script>
+
+<!-- Add Transaction Modal -->
+<div id="addTransactionModal" class="modal" style="display: none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>➕ Add New Transaction</h3>
+      <span class="close" onclick="closeAddTransactionModal()">&times;</span>
+    </div>
+    <form id="editorTransactionForm" enctype="multipart/form-data">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="editorDepartment">Select Department *</label>
+          <select id="editorDepartment" name="department" required onchange="updateEditorBudgetOptions()">
+            <option value="">Choose a department...</option>
+            <% 
+              const editorDepartments = [...new Set(assignedBudgets.map(b => b.department))];
+              editorDepartments.forEach(dept => { 
+            %>
+              <option value="<%= dept %>"><%= dept %></option>
+            <% }) %>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="editorBudgetId">Select Project *</label>
+          <select id="editorBudgetId" name="budgetId" required disabled>
+            <option value="">First select a department...</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="editorCategory">Category</label>
+          <select id="editorCategory" name="category">
+            <option value="">Select category...</option>
+            <option value="office_supplies">Office Supplies</option>
+            <option value="travel">Travel</option>
+            <option value="equipment">Equipment</option>
+            <option value="utilities">Utilities</option>
+            <option value="maintenance">Maintenance</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="editorVendor">Vendor/Supplier</label>
+          <input type="text" id="editorVendor" name="vendor" placeholder="Enter vendor name">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="editorDescription">Description *</label>
+          <input type="text" id="editorDescription" name="description" required placeholder="Enter transaction description">
+        </div>
+        
+        <div class="form-group">
+          <label for="editorAmount">Amount (₹) *</label>
+          <input type="number" id="editorAmount" name="amount" step="0.01" required placeholder="0.00">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="editorDate">Date</label>
+          <input type="date" id="editorDate" name="date">
+        </div>
+        
+        <div class="form-group">
+          <label for="editorPriority">Priority</label>
+          <select id="editorPriority" name="priority">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="editorReceipt">Receipt Upload</label>
+        <div class="file-upload-area" id="editorFileUploadArea">
+          <div class="upload-icon">📁</div>
+          <p>Drop receipt here or click to browse</p>
+          <p class="file-types">Supports JPG, PNG, PDF files up to 10MB</p>
+          <input type="file" id="editorReceipt" name="receipt" accept="image/*,.pdf" style="display: none;">
+          <button type="button" onclick="document.getElementById('editorReceipt').click()">Choose File</button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="editorNotes">Notes</label>
+        <textarea id="editorNotes" name="notes" rows="3" placeholder="Additional notes..."></textarea>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" id="editorSubmitBtn">Create Transaction</button>
+        <button type="button" onclick="closeAddTransactionModal()" class="btn-secondary">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+.modal {
+  position: fixed;
+  z-index: 1000;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  margin: auto;
+  position: relative;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #1e293b;
+}
+
+.close {
+  font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  color: #64748b;
+}
+
+.close:hover {
+  color: #1e293b;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.form-group select,
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+.form-group textarea {
+  resize: vertical;
+}
+
+.file-upload-area {
+  border: 2px dashed #d1d5db;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  background: #f9fafb;
+  transition: all 0.3s ease;
+}
+
+.file-upload-area:hover {
+  border-color: var(--primary-color);
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.upload-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.file-types {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin: 0.5rem 0;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  padding: 1.5rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.btn-primary {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: #6b7280;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary:hover {
+  background: #4b5563;
+}
+
+@media (max-width: 768px) {
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-actions {
+    flex-direction: column;
+  }
+}
+</style>
+
+<script type="application/json" id="assigned-budgets-data"><%- JSON.stringify(assignedBudgets) %></script>
+<script>
+// Get assigned budgets data from JSON script tag
+const assignedBudgetsDataScript = document.getElementById('assigned-budgets-data');
+window.assignedBudgetsData = assignedBudgetsDataScript ? JSON.parse(assignedBudgetsDataScript.textContent) : [];
+
+function showAddTransactionModal() {
+  document.getElementById('addTransactionModal').style.display = 'flex';
+}
+
+function closeAddTransactionModal() {
+  document.getElementById('addTransactionModal').style.display = 'none';
+}
+
+// Department-based budget filtering for editor
+function updateEditorBudgetOptions() {
+  const departmentSelect = document.getElementById('editorDepartment');
+  const budgetSelect = document.getElementById('editorBudgetId');
+  const selectedDepartment = departmentSelect.value;
+  
+  // Clear existing options
+  budgetSelect.innerHTML = '<option value="">Choose a project...</option>';
+  
+  if (selectedDepartment) {
+    budgetSelect.disabled = false;
+    
+    // Filter budgets by selected department
+    const budgets = window.assignedBudgetsData || [];
+    const filteredBudgets = budgets.filter(budget => budget.department === selectedDepartment);
+    
+    filteredBudgets.forEach(budget => {
+      const option = document.createElement('option');
+      option.value = budget._id;
+      option.textContent = `${budget.name} (₹${budget.totalBudget.toLocaleString()})`;
+      budgetSelect.appendChild(option);
+    });
+  } else {
+    budgetSelect.disabled = true;
+    budgetSelect.innerHTML = '<option value="">First select a department...</option>';
+  }
+}
+
+// Handle file selection for editor
+document.getElementById('editorReceipt').addEventListener('change', function(event) {
+  const file = event.target.files[0];
+  if (file) {
+    const uploadArea = document.getElementById('editorFileUploadArea');
+    uploadArea.innerHTML = `
+      <div class="file-preview">
+        <div class="file-info">
+          <h4>${file.name}</h4>
+          <p>${formatFileSize(file.size)}</p>
+          <button type="button" onclick="resetEditorFileUpload()">Remove</button>
+        </div>
+      </div>
+    `;
+  }
+});
+
+function resetEditorFileUpload() {
+  const uploadArea = document.getElementById('editorFileUploadArea');
+  uploadArea.innerHTML = `
+    <div class="upload-icon">📁</div>
+    <p>Drop receipt here or click to browse</p>
+    <p class="file-types">Supports JPG, PNG, PDF files up to 10MB</p>
+    <input type="file" id="editorReceipt" name="receipt" accept="image/*,.pdf" style="display: none;">
+    <button type="button" onclick="document.getElementById('editorReceipt').click()">Choose File</button>
+  `;
+  document.getElementById('editorReceipt').addEventListener('change', function(event) {
+    const file = event.target.files[0];
+    if (file) {
+      const uploadArea = document.getElementById('editorFileUploadArea');
+      uploadArea.innerHTML = `
+        <div class="file-preview">
+          <div class="file-info">
+            <h4>${file.name}</h4>
+            <p>${formatFileSize(file.size)}</p>
+            <button type="button" onclick="resetEditorFileUpload()">Remove</button>
+          </div>
+        </div>
+      `;
+    }
+  });
+}
+
+// Handle editor transaction form submission
+document.getElementById('editorTransactionForm').addEventListener('submit', async function(event) {
+  event.preventDefault();
+  
+  const formData = new FormData(event.target);
+  const submitBtn = document.getElementById('editorSubmitBtn');
+  
+  const description = formData.get('description');
+  const amount = formData.get('amount');
+  const budgetId = formData.get('budgetId');
+  const department = formData.get('department');
+  
+  if (!description || !amount || !budgetId || !department) {
+    alert('Please fill in all required fields including department and project selection');
+    return;
+  }
+  
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Creating Transaction...';
+  
+  try {
+    const response = await fetch('/editor/transaction/new', {
+      method: 'POST',
+      body: formData
+    });
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+    }
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      alert('Transaction created successfully!');
+      closeAddTransactionModal();
+      window.location.reload();
+    } else {
+      alert('Failed to create transaction: ' + result.error);
+    }
+  } catch (error) {
+    console.error('Error creating transaction:', error);
+    alert('Error creating transaction: ' + error.message);
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Create Transaction';
+  }
+});
+
+function formatFileSize(bytes) {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+  const modal = document.getElementById('addTransactionModal');
+  if (event.target === modal) {
+    closeAddTransactionModal();
+  }
+}
 </script>
 
 <%- include('partials/footer') %>
