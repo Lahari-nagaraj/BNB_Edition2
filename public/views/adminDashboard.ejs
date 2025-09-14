@@ -316,8 +316,7 @@ function copyToClipboard(elementId) {
   const text = element.textContent;
   
   navigator.clipboard.writeText(text).then(() => {
-    // Show success feedback
-    const btn = element.nextElementSibling;
+        const btn = element.nextElementSibling;
     const originalText = btn.textContent;
     btn.textContent = '✅';
     btn.style.background = 'var(--success-color)';
@@ -348,15 +347,13 @@ async function updateBudgetStatus(budgetId) {
     const result = await response.json();
     
     if (result.success) {
-      // Update the status badge in the UI
-      const statusBadge = document.querySelector(`[data-budget-id="${budgetId}"] .status-badge`);
+            const statusBadge = document.querySelector(`[data-budget-id="${budgetId}"] .status-badge`);
       if (statusBadge) {
         statusBadge.textContent = newStatus;
         statusBadge.className = `status-badge status-${newStatus}`;
       }
       
-      // Show success message
-      showNotification('Status updated successfully!', 'success');
+            showNotification('Status updated successfully!', 'success');
     } else {
       showNotification('Failed to update status', 'error');
     }
@@ -367,13 +364,11 @@ async function updateBudgetStatus(budgetId) {
 }
 
 function showNotification(message, type) {
-  // Create notification element
-  const notification = document.createElement('div');
+    const notification = document.createElement('div');
   notification.className = `notification notification-${type}`;
   notification.textContent = message;
   
-  // Style the notification
-  notification.style.cssText = `
+    notification.style.cssText = `
     position: fixed;
     top: 20px;
     right: 20px;
@@ -391,11 +386,9 @@ function showNotification(message, type) {
     notification.style.background = '#ef4444';
   }
   
-  // Add to page
-  document.body.appendChild(notification);
+    document.body.appendChild(notification);
   
-  // Remove after 3 seconds
-  setTimeout(() => {
+    setTimeout(() => {
     notification.style.animation = 'slideOut 0.3s ease-in';
     setTimeout(() => {
       document.body.removeChild(notification);
@@ -403,7 +396,6 @@ function showNotification(message, type) {
   }, 3000);
 }
 
-// Add CSS for notification animations
 const style = document.createElement('style');
 style.textContent = `
   @keyframes slideIn {
@@ -605,8 +597,7 @@ async function generateEditors() {
     const result = await response.json();
     
     if (result.success) {
-      // Show generated editors info
-      let message = `Successfully generated ${result.editors.length} editors:\n\n`;
+            let message = `Successfully generated ${result.editors.length} editors:\n\n`;
       result.editors.forEach(editor => {
         message += `• ${editor.name} (${editor.department})\n`;
         message += `  Email: ${editor.email}\n`;
@@ -615,8 +606,7 @@ async function generateEditors() {
       
       alert(message);
       closeGenerateEditorsModal();
-      // Refresh the page to show new editors
-      window.location.reload();
+            window.location.reload();
     } else {
       alert('Error: ' + result.error);
     }
@@ -626,7 +616,6 @@ async function generateEditors() {
   }
 }
 
-// Close modal when clicking outside
 window.onclick = function(event) {
   const modal = document.getElementById('generateEditorsModal');
   if (event.target === modal) {
@@ -634,10 +623,8 @@ window.onclick = function(event) {
   }
 }
 
-// Transaction Management Functions
 function showAddTransactionModal() {
-  // Create modal if it doesn't exist
-  if (!document.getElementById('addTransactionModal')) {
+    if (!document.getElementById('addTransactionModal')) {
     createAddTransactionModal();
   }
   document.getElementById('addTransactionModal').style.display = 'block';
@@ -729,8 +716,7 @@ function createAddTransactionModal() {
   
   document.body.appendChild(modal);
   
-  // Add event listeners
-  document.getElementById('adminTransactionForm').addEventListener('submit', handleAdminTransactionSubmit);
+    document.getElementById('adminTransactionForm').addEventListener('submit', handleAdminTransactionSubmit);
   document.getElementById('adminReceipt').addEventListener('change', handleAdminFileSelect);
   document.getElementById('adminFileUploadArea').addEventListener('click', () => document.getElementById('adminReceipt').click());
 }
@@ -777,8 +763,7 @@ async function handleAdminTransactionSubmit(event) {
   const formData = new FormData(event.target);
   const submitBtn = document.getElementById('adminSubmitBtn');
   
-  // Validate required fields
-  const description = formData.get('description');
+    const description = formData.get('description');
   const amount = formData.get('amount');
   const budgetId = formData.get('budgetId');
   

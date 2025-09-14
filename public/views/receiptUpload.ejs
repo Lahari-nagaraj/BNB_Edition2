@@ -402,7 +402,6 @@
         body: formData,
       });
 
-      // Check if response is JSON
       const contentType = response.headers.get("content-type");
       if (!contentType || !contentType.includes("application/json")) {
         const text = await response.text();
@@ -416,16 +415,13 @@
       const result = await response.json();
 
       if (result.success) {
-        // Process OCR data if available
         if (result.ocrData) {
           ocrData = result.ocrData;
           displayOCRResults(result.ocrData);
         }
 
-        // Show success message
         alert("Receipt uploaded successfully!");
 
-        // Clear form
         clearForm();
       } else {
         alert("Upload failed: " + result.error);
@@ -478,7 +474,6 @@
     if (ocrData.date)
       document.getElementById("date").value = formatDateForInput(ocrData.date);
 
-    // Auto-fill description if not already filled
     if (!document.getElementById("description").value && ocrData.vendor) {
       document.getElementById(
         "description"

@@ -2,11 +2,9 @@ const QRCode = require('qrcode');
 
 class VisualizationService {
   
-  // Generate QR Code for transaction verification
-  async generateQRCode(transactionHash) {
+    async generateQRCode(transactionHash) {
     try {
-      const verificationUrl = `${process.env.BASE_URL || 'http://localhost:8080'}/verify/${transactionHash}`;
-      const qrCodeDataURL = await QRCode.toDataURL(verificationUrl, {
+      const verificationUrl = `${process.env.BASE_URL || 'http:      const qrCodeDataURL = await QRCode.toDataURL(verificationUrl, {
         width: 200,
         margin: 2,
         color: {
@@ -21,8 +19,7 @@ class VisualizationService {
     }
   }
 
-  // Generate Chart.js configuration for budget spending
-  generateSpendingChart(budgetData) {
+    generateSpendingChart(budgetData) {
     const spent = budgetData.spent || 0;
     const remaining = budgetData.remaining || budgetData.totalBudget - spent;
     
@@ -33,9 +30,7 @@ class VisualizationService {
         datasets: [{
           data: [spent, remaining],
           backgroundColor: [
-            '#ef4444', // Red for spent
-            '#10b981'  // Green for remaining
-          ],
+            '#ef4444',             '#10b981'            ],
           borderWidth: 0,
           hoverOffset: 4
         }]
@@ -66,8 +61,7 @@ class VisualizationService {
     };
   }
 
-  // Generate department allocation chart
-  generateDepartmentChart(departments) {
+    generateDepartmentChart(departments) {
     return {
       type: 'bar',
       data: {
@@ -112,13 +106,11 @@ class VisualizationService {
     };
   }
 
-  // Generate Sankey diagram data
-  generateSankeyData(hierarchyData) {
+    generateSankeyData(hierarchyData) {
     const nodes = [];
     const links = [];
 
-    // Add budget node
-    nodes.push({
+        nodes.push({
       id: 0,
       name: hierarchyData.name,
       type: 'budget',
@@ -127,8 +119,7 @@ class VisualizationService {
 
     let nodeIndex = 1;
 
-    // Add departments
-    if (hierarchyData.departments) {
+        if (hierarchyData.departments) {
       hierarchyData.departments.forEach(dept => {
         nodes.push({
           id: nodeIndex,
@@ -146,8 +137,7 @@ class VisualizationService {
         const deptIndex = nodeIndex;
         nodeIndex++;
 
-        // Add projects
-        if (dept.projects) {
+                if (dept.projects) {
           dept.projects.forEach(project => {
             nodes.push({
               id: nodeIndex,
@@ -165,8 +155,7 @@ class VisualizationService {
             const projectIndex = nodeIndex;
             nodeIndex++;
 
-            // Add vendors
-            if (project.vendors) {
+                        if (project.vendors) {
               project.vendors.forEach(vendor => {
                 nodes.push({
                   id: nodeIndex,
@@ -192,10 +181,8 @@ class VisualizationService {
     return { nodes, links };
   }
 
-  // Generate timeline chart for spending over time
-  generateTimelineChart(transactions) {
-    // Group transactions by month
-    const monthlyData = {};
+    generateTimelineChart(transactions) {
+        const monthlyData = {};
     transactions.forEach(tx => {
       const month = new Date(tx.createdAt).toISOString().substring(0, 7);
       monthlyData[month] = (monthlyData[month] || 0) + tx.amount;
@@ -244,8 +231,7 @@ class VisualizationService {
     };
   }
 
-  // Generate status distribution pie chart
-  generateStatusChart(items) {
+    generateStatusChart(items) {
     const statusCounts = {};
     items.forEach(item => {
       statusCounts[item.status] = (statusCounts[item.status] || 0) + 1;
@@ -286,8 +272,7 @@ class VisualizationService {
     };
   }
 
-  // Generate comparison chart for multiple budgets
-  generateComparisonChart(budgets) {
+    generateComparisonChart(budgets) {
     return {
       type: 'bar',
       data: {

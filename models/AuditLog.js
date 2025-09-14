@@ -1,8 +1,8 @@
 const mongoose = require("mongoose");
 
 const auditLogSchema = new mongoose.Schema({
-  action: { type: String, required: true }, // create, update, delete, approve, reject
-  entityType: { type: String, required: true }, // Budget, Department, Project, Vendor, Transaction
+  action: { type: String, required: true },
+  entityType: { type: String, required: true },
   entityId: { type: mongoose.Schema.Types.ObjectId, required: true },
   entityName: { type: String, required: true },
   userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
@@ -11,7 +11,7 @@ const auditLogSchema = new mongoose.Schema({
   newData: { type: mongoose.Schema.Types.Mixed },
   ipAddress: { type: String },
   userAgent: { type: String },
-  timestamp: { type: Date, default: Date.now }
+  timestamp: { type: Date, default: Date.now },
 });
 
 module.exports = mongoose.model("AuditLog", auditLogSchema);

@@ -1,41 +1,37 @@
-require('dotenv').config();
-const cloudinary = require('cloudinary').v2;
-const multer = require('multer');
+require("dotenv").config();
+const cloudinary = require("cloudinary").v2;
+const multer = require("multer");
 
-// Configure Cloudinary
 cloudinary.config({
-  cloud_name: process.env.CLOUD_KEY_NAME || 'dlf94abdo',
-  api_key: process.env.CLOUD_API_KEY || '999677219773141',
-  api_secret: process.env.CLOUD_API_SECRET || 'oOcKYpwdVsOVTa7fP13YAFnpuUo',
+  cloud_name: process.env.CLOUD_KEY_NAME || "dlf94abdo",
+  api_key: process.env.CLOUD_API_KEY || "999677219773141",
+  api_secret: process.env.CLOUD_API_SECRET || "oOcKYpwdVsOVTa7fP13YAFnpuUo",
 });
 
-
-console.log('Cloudinary configured successfully');
+console.log("Cloudinary configured successfully");
 
 class CloudinaryService {
   constructor() {
     this.cloudinary = cloudinary;
   }
 
-  // Upload receipt image/PDF using memory buffer
   async uploadReceipt(file, transactionId) {
     try {
       if (!process.env.CLOUD_KEY_NAME) {
         return {
           success: false,
           error:
-            'Cloudinary not configured. Please add CLOUD_KEY_NAME, CLOUD_API_KEY, and CLOUD_API_SECRET to your .env file',
+            "Cloudinary not configured. Please add CLOUD_KEY_NAME, CLOUD_API_KEY, and CLOUD_API_SECRET to your .env file",
         };
       }
 
-      // Upload directly from memory buffer
       const result = await new Promise((resolve, reject) => {
         const uploadStream = this.cloudinary.uploader.upload_stream(
           {
-            folder: 'bnb-receipts',
+            folder: "bnb-receipts",
             public_id: `receipt_${transactionId}_${Date.now()}`,
-            resource_type: 'auto', // auto-detect (image/pdf)
-            transformation: [{ quality: 'auto' }, { fetch_format: 'auto' }],
+            resource_type: "auto",
+            transformation: [{ quality: "auto" }, { fetch_format: "auto" }],
           },
           (error, result) => {
             if (error) reject(error);
@@ -43,7 +39,7 @@ class CloudinaryService {
           }
         );
 
-        uploadStream.end(file.buffer); // send buffer here
+        uploadStream.end(file.buffer);
       });
 
       return {
@@ -54,7 +50,7 @@ class CloudinaryService {
         size: result.bytes,
       };
     } catch (error) {
-      console.error('Cloudinary upload error:', error);
+      console.error("Cloudinary upload error:", error);
       return {
         success: false,
         error: error.message,
@@ -62,16 +58,15 @@ class CloudinaryService {
     }
   }
 
-  // Delete receipt
   async deleteReceipt(publicId) {
     try {
       const result = await this.cloudinary.uploader.destroy(publicId);
       return {
-        success: result.result === 'ok',
+        success: result.result === "ok",
         result: result.result,
       };
     } catch (error) {
-      console.error('Cloudinary delete error:', error);
+      console.error("Cloudinary delete error:", error);
       return {
         success: false,
         error: error.message,
@@ -79,23 +74,21 @@ class CloudinaryService {
     }
   }
 
-  // Generate receipt thumbnail
   async generateThumbnail(publicId) {
     try {
       return this.cloudinary.url(publicId, {
         width: 200,
         height: 200,
-        crop: 'fill',
-        quality: 'auto',
-        fetch_format: 'auto',
+        crop: "fill",
+        quality: "auto",
+        fetch_format: "auto",
       });
     } catch (error) {
-      console.error('Thumbnail generation error:', error);
+      console.error("Thumbnail generation error:", error);
       return null;
     }
   }
 
-  // Verify receipt format and content
   async verifyReceipt(url) {
     try {
       const publicId = this.extractPublicId(url);
@@ -108,13 +101,13 @@ class CloudinaryService {
         width: result.width,
         height: result.height,
         createdAt: result.created_at,
-        isImage: ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(
+        isImage: ["jpg", "jpeg", "png", "gif", "webp"].includes(
           result.format.toLowerCase()
         ),
-        isPDF: result.format.toLowerCase() === 'pdf',
+        isPDF: result.format.toLowerCase() === "pdf",
       };
     } catch (error) {
-      console.error('Receipt verification error:', error);
+      console.error("Receipt verification error:", error);
       return {
         success: false,
         error: error.message,
@@ -122,23 +115,20 @@ class CloudinaryService {
     }
   }
 
-  // Extract public ID from Cloudinary URL
   extractPublicId(url) {
-    const parts = url.split('/');
+    const parts = url.split("/");
     const filename = parts[parts.length - 1];
-    return filename.split('.')[0];
+    return filename.split(".")[0];
   }
 
-  // Generate optimized URL
   generateOptimizedUrl(publicId, options = {}) {
     return this.cloudinary.url(publicId, {
-      quality: 'auto',
-      fetch_format: 'auto',
+      quality: "auto",
+      fetch_format: "auto",
       ...options,
     });
   }
 
-  // Get storage usage stats
   async getStorageStats() {
     try {
       const result = await this.cloudinary.api.usage();
@@ -153,7 +143,7 @@ class CloudinaryService {
         derived_resources: result.derived_resources,
       };
     } catch (error) {
-      console.error('Storage stats error:', error);
+      console.error("Storage stats error:", error);
       return {
         success: false,
         error: error.message,
@@ -162,30 +152,29 @@ class CloudinaryService {
   }
 }
 
-// Configure multer for memory storage
 const storage = multer.memoryStorage();
 
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
+    fileSize: 10 * 1024 * 1024,
   },
   fileFilter: (req, file, cb) => {
     const allowedTypes = [
-      'image/jpeg',
-      'image/jpg',
-      'image/png',
-      'image/gif',
-      'image/webp',
-      'application/pdf',
+      "image/jpeg",
+      "image/jpg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "application/pdf",
     ];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
-      console.log('File type rejected:', file.mimetype);
+      console.log("File type rejected:", file.mimetype);
       cb(
         new Error(
-          'Invalid file type. Only images (JPG, PNG, GIF, WebP) and PDFs are allowed.'
+          "Invalid file type. Only images (JPG, PNG, GIF, WebP) and PDFs are allowed."
         ),
         false
       );

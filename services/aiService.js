@@ -1,51 +1,87 @@
-const { HfInference } = require('@huggingface/inference');
+const { HfInference } = require("@huggingface/inference");
 
 class AIService {
   constructor() {
     this.hf = new HfInference(process.env.HF_TOKEN);
-    this.modelId = process.env.HF_MODEL_ID || 'deepseek-ai/DeepSeek-V3-0324';
+    this.modelId = process.env.HF_MODEL_ID || "deepseek-ai/DeepSeek-V3-0324";
   }
 
-  // Budget Summary Generator
   async generateBudgetSummary(budgetData, context = null) {
     try {
-      // Build comprehensive project context
-      let departmentsInfo = '';
+      let departmentsInfo = "";
       if (budgetData.departments && budgetData.departments.length > 0) {
-        departmentsInfo = '\nDepartments:\n' + budgetData.departments.map(dept => 
-          `- ${dept.name}: ₹${dept.allocatedBudget?.toLocaleString() || 0} allocated, ₹${dept.spent?.toLocaleString() || 0} spent`
-        ).join('\n');
+        departmentsInfo =
+          "\nDepartments:\n" +
+          budgetData.departments
+            .map(
+              (dept) =>
+                `- ${dept.name}: ₹${
+                  dept.allocatedBudget?.toLocaleString() || 0
+                } allocated, ₹${dept.spent?.toLocaleString() || 0} spent`
+            )
+            .join("\n");
       }
 
-      let vendorsInfo = '';
+      let vendorsInfo = "";
       if (budgetData.departments) {
-        const allVendors = budgetData.departments.flatMap(dept => dept.vendors || []);
+        const allVendors = budgetData.departments.flatMap(
+          (dept) => dept.vendors || []
+        );
         if (allVendors.length > 0) {
-          vendorsInfo = '\nKey Vendors:\n' + allVendors.slice(0, 5).map(vendor => 
-            `- ${vendor.name}: ${vendor.workDescription || 'Service provider'} (₹${vendor.allocatedBudget?.toLocaleString() || 0})`
-          ).join('\n');
+          vendorsInfo =
+            "\nKey Vendors:\n" +
+            allVendors
+              .slice(0, 5)
+              .map(
+                (vendor) =>
+                  `- ${vendor.name}: ${
+                    vendor.workDescription || "Service provider"
+                  } (₹${vendor.allocatedBudget?.toLocaleString() || 0})`
+              )
+              .join("\n");
         }
       }
 
-      let expensesInfo = '';
+      let expensesInfo = "";
       if (context && context.transactions && context.transactions.length > 0) {
-        expensesInfo = '\nRecent Transactions:\n' + context.transactions.slice(0, 5).map(transaction => 
-          `- ${transaction.description}: ₹${transaction.amount?.toLocaleString() || 0} (${transaction.category || 'General'}) - ${transaction.status}`
-        ).join('\n');
+        expensesInfo =
+          "\nRecent Transactions:\n" +
+          context.transactions
+            .slice(0, 5)
+            .map(
+              (transaction) =>
+                `- ${transaction.description}: ₹${
+                  transaction.amount?.toLocaleString() || 0
+                } (${transaction.category || "General"}) - ${
+                  transaction.status
+                }`
+            )
+            .join("\n");
       } else if (budgetData.expenses && budgetData.expenses.length > 0) {
-        expensesInfo = '\nRecent Expenses:\n' + budgetData.expenses.slice(0, 5).map(expense => 
-          `- ${expense.description}: ₹${expense.amount?.toLocaleString() || 0} (${expense.category || 'General'})`
-        ).join('\n');
+        expensesInfo =
+          "\nRecent Expenses:\n" +
+          budgetData.expenses
+            .slice(0, 5)
+            .map(
+              (expense) =>
+                `- ${expense.description}: ₹${
+                  expense.amount?.toLocaleString() || 0
+                } (${expense.category || "General"})`
+            )
+            .join("\n");
       }
 
-      // Enhanced context with more details
-      let projectTypeInfo = '';
+      let projectTypeInfo = "";
       if (budgetData.projectType) {
         projectTypeInfo = `\nProject Type: ${budgetData.projectType}`;
-        if (budgetData.projectType === 'college') {
-          projectTypeInfo += `\nCollege: ${budgetData.collegeName || 'N/A'} (${budgetData.collegeType || 'N/A'})`;
+        if (budgetData.projectType === "college") {
+          projectTypeInfo += `\nCollege: ${budgetData.collegeName || "N/A"} (${
+            budgetData.collegeType || "N/A"
+          })`;
         } else {
-          projectTypeInfo += `\nNationality: ${budgetData.nationality || 'N/A'}`;
+          projectTypeInfo += `\nNationality: ${
+            budgetData.nationality || "N/A"
+          }`;
         }
       }
 
@@ -61,7 +97,9 @@ Remaining Amount: ₹${budgetData.remaining.toLocaleString()}
 Fiscal Year: ${budgetData.fiscalYear}
 Budget Type: ${budgetData.type}
 Current Status: ${budgetData.status}
-Approved By: ${budgetData.approvedBy}${projectTypeInfo}${departmentsInfo}${vendorsInfo}${expensesInfo}
+Approved By: ${
+        budgetData.approvedBy
+      }${projectTypeInfo}${departmentsInfo}${vendorsInfo}${expensesInfo}
 
 Create a summary that helps citizens understand:
 1. What this budget is for
@@ -89,29 +127,27 @@ Return ONLY valid JSON in this exact format:
 }`;
 
       const response = await this.hf.textGeneration({
-        model: 'microsoft/DialoGPT-medium',
+        model: "microsoft/DialoGPT-medium",
         inputs: prompt,
         parameters: {
           max_new_tokens: 400,
           temperature: 0.2,
-          return_full_text: false
-        }
+          return_full_text: false,
+        },
       });
 
       const result = this.parseJSONResponse(response.generated_text);
       return result || this.getFallbackSummary(budgetData);
     } catch (error) {
-      console.error('Error generating budget summary:', error);
+      console.error("Error generating budget summary:", error);
       return this.getFallbackSummary(budgetData);
     }
   }
 
-  // Transaction Classifier
   async classifyTransaction(transactionData, budgetContext) {
     try {
-      // Check if Hugging Face is available
       if (!process.env.HF_TOKEN) {
-        console.log('HF_TOKEN not available, using fallback classification');
+        console.log("HF_TOKEN not available, using fallback classification");
         return this.getFallbackClassification(transactionData);
       }
 
@@ -120,7 +156,7 @@ Return ONLY valid JSON in this exact format:
 Transaction:
 - Description: ${transactionData.description}
 - Amount: ₹${transactionData.amount.toLocaleString()}
-- Vendor: ${transactionData.vendorName || 'Unknown'}
+- Vendor: ${transactionData.vendorName || "Unknown"}
 
 Budget Context:
 - Budget: ${budgetContext.name}
@@ -137,55 +173,75 @@ Return JSON array:
   "recommended_actions": ["action1", "action2"]
 }]`;
 
-      // Add timeout to prevent hanging
       const response = await Promise.race([
         this.hf.textGeneration({
-          model: 'microsoft/DialoGPT-medium',
+          model: "microsoft/DialoGPT-medium",
           inputs: prompt,
           parameters: {
             max_new_tokens: 200,
             temperature: 0.0,
-            return_full_text: false
-          }
+            return_full_text: false,
+          },
         }),
-        new Promise((_, reject) => 
-          setTimeout(() => reject(new Error('AI classification timeout')), 10000)
-        )
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error("AI classification timeout")),
+            10000
+          )
+        ),
       ]);
 
       return this.parseJSONResponse(response.generated_text);
     } catch (error) {
-      console.error('Error classifying transaction:', error);
+      console.error("Error classifying transaction:", error);
       return this.getFallbackClassification(transactionData);
     }
   }
 
-  // FAQ Generator
   async generateFAQ(budgetData, context = null) {
     try {
-      // Build comprehensive project context for FAQ
-      let departmentsInfo = '';
+      let departmentsInfo = "";
       if (budgetData.departments && budgetData.departments.length > 0) {
-        departmentsInfo = '\nDepartments: ' + budgetData.departments.map(dept => 
-          `${dept.name} (₹${dept.allocatedBudget?.toLocaleString() || 0})`
-        ).join(', ');
+        departmentsInfo =
+          "\nDepartments: " +
+          budgetData.departments
+            .map(
+              (dept) =>
+                `${dept.name} (₹${dept.allocatedBudget?.toLocaleString() || 0})`
+            )
+            .join(", ");
       }
 
-      let vendorsInfo = '';
+      let vendorsInfo = "";
       if (budgetData.departments) {
-        const allVendors = budgetData.departments.flatMap(dept => dept.vendors || []);
+        const allVendors = budgetData.departments.flatMap(
+          (dept) => dept.vendors || []
+        );
         if (allVendors.length > 0) {
-          vendorsInfo = '\nKey Vendors: ' + allVendors.slice(0, 3).map(vendor => 
-            `${vendor.name} (${vendor.workDescription || 'Service provider'})`
-          ).join(', ');
+          vendorsInfo =
+            "\nKey Vendors: " +
+            allVendors
+              .slice(0, 3)
+              .map(
+                (vendor) =>
+                  `${vendor.name} (${
+                    vendor.workDescription || "Service provider"
+                  })`
+              )
+              .join(", ");
         }
       }
 
-      let transactionInfo = '';
+      let transactionInfo = "";
       if (context && context.transactions && context.transactions.length > 0) {
-        transactionInfo = '\nRecent Transactions: ' + context.transactions.slice(0, 3).map(t => 
-          `${t.description} (₹${t.amount?.toLocaleString() || 0})`
-        ).join(', ');
+        transactionInfo =
+          "\nRecent Transactions: " +
+          context.transactions
+            .slice(0, 3)
+            .map(
+              (t) => `${t.description} (₹${t.amount?.toLocaleString() || 0})`
+            )
+            .join(", ");
       }
 
       const prompt = `You are a government transparency expert. Generate 6 FAQ questions and answers about this budget that citizens would ask.
@@ -200,7 +256,9 @@ Remaining: ₹${budgetData.remaining.toLocaleString()}
 Fiscal Year: ${budgetData.fiscalYear}
 Status: ${budgetData.status}
 Type: ${budgetData.type}
-Approved By: ${budgetData.approvedBy}${departmentsInfo}${vendorsInfo}${transactionInfo}
+Approved By: ${
+        budgetData.approvedBy
+      }${departmentsInfo}${vendorsInfo}${transactionInfo}
 
 Create questions that citizens typically ask about government budgets:
 - What is this budget for?
@@ -214,143 +272,136 @@ Return ONLY valid JSON array:
 [{"q": "Short question?", "a": "Clear, simple answer."}, ...]`;
 
       const response = await this.hf.textGeneration({
-        model: 'microsoft/DialoGPT-medium',
+        model: "microsoft/DialoGPT-medium",
         inputs: prompt,
         parameters: {
           max_new_tokens: 500,
           temperature: 0.3,
-          return_full_text: false
-        }
+          return_full_text: false,
+        },
       });
 
       const result = this.parseJSONResponse(response.generated_text);
       return result || this.getFallbackFAQ(budgetData);
     } catch (error) {
-      console.error('Error generating FAQ:', error);
+      console.error("Error generating FAQ:", error);
       return this.getFallbackFAQ(budgetData);
     }
   }
 
-  // Sankey Data Generator
   async generateSankeyData(hierarchyData, context = null) {
     try {
       const nodes = [];
       const links = [];
 
-      // Budget node
       nodes.push({
         id: `budget_${hierarchyData._id}`,
         name: hierarchyData.name,
-        type: 'budget'
+        type: "budget",
       });
 
-      // Department nodes and links
       if (hierarchyData.departments && hierarchyData.departments.length > 0) {
-        hierarchyData.departments.forEach(dept => {
+        hierarchyData.departments.forEach((dept) => {
           nodes.push({
             id: `dept_${dept._id || dept.name}`,
             name: dept.name,
-            type: 'department'
+            type: "department",
           });
           links.push({
             source: `budget_${hierarchyData._id}`,
             target: `dept_${dept._id || dept.name}`,
-            value: dept.allocatedBudget || 100000
+            value: dept.allocatedBudget || 100000,
           });
 
-          // Vendor nodes and links
           if (dept.vendors && dept.vendors.length > 0) {
-            dept.vendors.forEach(vendor => {
+            dept.vendors.forEach((vendor) => {
               nodes.push({
                 id: `vendor_${vendor._id || vendor.name}`,
                 name: vendor.name,
-                type: 'vendor'
+                type: "vendor",
               });
               links.push({
                 source: `dept_${dept._id || dept.name}`,
                 target: `vendor_${vendor._id || vendor.name}`,
-                value: vendor.allocatedBudget || 25000
+                value: vendor.allocatedBudget || 25000,
               });
             });
           }
         });
       } else {
-        // If no departments, create sample data for visualization
         nodes.push({
-          id: 'dept_general',
-          name: 'General Operations',
-          type: 'department'
+          id: "dept_general",
+          name: "General Operations",
+          type: "department",
         });
         links.push({
           source: `budget_${hierarchyData._id}`,
-          target: 'dept_general',
-          value: hierarchyData.totalBudget * 0.6
+          target: "dept_general",
+          value: hierarchyData.totalBudget * 0.6,
         });
 
         nodes.push({
-          id: 'dept_infrastructure',
-          name: 'Infrastructure',
-          type: 'department'
+          id: "dept_infrastructure",
+          name: "Infrastructure",
+          type: "department",
         });
         links.push({
           source: `budget_${hierarchyData._id}`,
-          target: 'dept_infrastructure',
-          value: hierarchyData.totalBudget * 0.4
+          target: "dept_infrastructure",
+          value: hierarchyData.totalBudget * 0.4,
         });
       }
 
-      // Add transaction data if available
       if (context && context.transactions && context.transactions.length > 0) {
-        // Group transactions by category
         const transactionCategories = {};
-        context.transactions.forEach(transaction => {
-          const category = transaction.category || 'General';
+        context.transactions.forEach((transaction) => {
+          const category = transaction.category || "General";
           if (!transactionCategories[category]) {
             transactionCategories[category] = 0;
           }
           transactionCategories[category] += transaction.amount || 0;
         });
 
-        // Create transaction category nodes
-        Object.entries(transactionCategories).forEach(([category, totalAmount], index) => {
-          const categoryId = `transaction_${category.toLowerCase().replace(/\s+/g, '_')}`;
-          nodes.push({
-            id: categoryId,
-            name: `${category} Expenses`,
-            type: 'transaction'
-          });
-          
-          // Link to budget
-          links.push({
-            source: `budget_${hierarchyData._id}`,
-            target: categoryId,
-            value: totalAmount
-          });
-        });
+        Object.entries(transactionCategories).forEach(
+          ([category, totalAmount], index) => {
+            const categoryId = `transaction_${category
+              .toLowerCase()
+              .replace(/\s+/g, "_")}`;
+            nodes.push({
+              id: categoryId,
+              name: `${category} Expenses`,
+              type: "transaction",
+            });
+
+            links.push({
+              source: `budget_${hierarchyData._id}`,
+              target: categoryId,
+              value: totalAmount,
+            });
+          }
+        );
       }
 
-      // Ensure we have at least some data for visualization
       if (nodes.length <= 1) {
         nodes.push({
-          id: 'expenses_general',
-          name: 'General Expenses',
-          type: 'transaction'
+          id: "expenses_general",
+          name: "General Expenses",
+          type: "transaction",
         });
         links.push({
           source: `budget_${hierarchyData._id}`,
-          target: 'expenses_general',
-          value: hierarchyData.spent || 10000
+          target: "expenses_general",
+          value: hierarchyData.spent || 10000,
         });
       }
 
       return { nodes, links };
     } catch (error) {
-      console.error('Error generating Sankey data:', error);
+      console.error("Error generating Sankey data:", error);
       return { nodes: [], links: [] };
     }
   }
 
-  // Chatbot Response Generator
   async generateChatbotResponse(userMessage, context) {
     try {
       const prompt = `You are a friendly BudgetTransparency Assistant. Answer the user's question about budget transparency in 3 short bullets. If they ask for verification, include the endpoint /verify/<hash>.
@@ -361,23 +412,22 @@ Context: ${JSON.stringify(context)}
 Provide 3 short bullets for lay users, and 1 technical line for auditors if requested.`;
 
       const response = await this.hf.textGeneration({
-        model: 'microsoft/DialoGPT-medium',
+        model: "microsoft/DialoGPT-medium",
         inputs: prompt,
         parameters: {
           max_new_tokens: 200,
           temperature: 0.5,
-          return_full_text: false
-        }
+          return_full_text: false,
+        },
       });
 
       return response.generated_text;
     } catch (error) {
-      console.error('Error generating chatbot response:', error);
+      console.error("Error generating chatbot response:", error);
       return "I'm sorry, I'm having trouble processing your request right now. Please try again later or contact support.";
     }
   }
 
-  // Email Digest Generator
   async generateEmailDigest(period, changes, transactions) {
     try {
       const prompt = `Generate a weekly email digest for stakeholders about budget changes and transactions.
@@ -393,33 +443,31 @@ Return JSON:
 }`;
 
       const response = await this.hf.textGeneration({
-        model: 'microsoft/DialoGPT-medium',
+        model: "microsoft/DialoGPT-medium",
         inputs: prompt,
         parameters: {
           max_new_tokens: 500,
           temperature: 0.3,
-          return_full_text: false
-        }
+          return_full_text: false,
+        },
       });
 
       return this.parseJSONResponse(response.generated_text);
     } catch (error) {
-      console.error('Error generating email digest:', error);
+      console.error("Error generating email digest:", error);
       return this.getFallbackEmailDigest(period, changes, transactions);
     }
   }
 
-  // Helper methods
   parseJSONResponse(text) {
     try {
-      // Extract JSON from the response
       const jsonMatch = text.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
       if (jsonMatch) {
         return JSON.parse(jsonMatch[0]);
       }
-      throw new Error('No JSON found in response');
+      throw new Error("No JSON found in response");
     } catch (error) {
-      console.error('Error parsing JSON response:', error);
+      console.error("Error parsing JSON response:", error);
       return null;
     }
   }
@@ -430,38 +478,61 @@ Return JSON:
       bullets: [
         "Supports departmental operations",
         "Transparent fund allocation",
-        "Public accountability maintained"
+        "Public accountability maintained",
       ],
       numbers: {
         total: `₹${budgetData.totalBudget.toLocaleString()}`,
         spent: `₹${budgetData.spent.toLocaleString()}`,
-        remaining: `₹${budgetData.remaining.toLocaleString()}`
+        remaining: `₹${budgetData.remaining.toLocaleString()}`,
       },
       verification_tips: [
         "Check transaction hashes for verification",
-        "Review audit trail for complete history"
-      ]
+        "Review audit trail for complete history",
+      ],
     };
   }
 
   getFallbackClassification(transactionData) {
-    return [{
-      id: transactionData._id,
-      category: "legit",
-      score: 75,
-      reasons: ["Standard transaction format", "Within expected parameters"],
-      recommended_actions: ["Continue monitoring", "Regular audit review"]
-    }];
+    return [
+      {
+        id: transactionData._id,
+        category: "legit",
+        score: 75,
+        reasons: ["Standard transaction format", "Within expected parameters"],
+        recommended_actions: ["Continue monitoring", "Regular audit review"],
+      },
+    ];
   }
 
   getFallbackFAQ(budgetData) {
     return [
-      { q: "What is this budget for?", a: `This budget funds ${budgetData.department} operations for ${budgetData.fiscalYear}.` },
-      { q: "How much is allocated?", a: `Total allocation is ₹${budgetData.totalBudget.toLocaleString()}.` },
-      { q: "How much has been spent?", a: `₹${budgetData.spent.toLocaleString()} has been spent so far.` },
-      { q: "What's the remaining amount?", a: `₹${budgetData.remaining.toLocaleString()} remains unspent.` },
-      { q: "Is this budget public?", a: budgetData.type === 'Public' ? "Yes, this is a public budget." : "No, this is a private budget." },
-      { q: "How can I verify transactions?", a: "Use the transaction hash to verify individual transactions." }
+      {
+        q: "What is this budget for?",
+        a: `This budget funds ${budgetData.department} operations for ${budgetData.fiscalYear}.`,
+      },
+      {
+        q: "How much is allocated?",
+        a: `Total allocation is ₹${budgetData.totalBudget.toLocaleString()}.`,
+      },
+      {
+        q: "How much has been spent?",
+        a: `₹${budgetData.spent.toLocaleString()} has been spent so far.`,
+      },
+      {
+        q: "What's the remaining amount?",
+        a: `₹${budgetData.remaining.toLocaleString()} remains unspent.`,
+      },
+      {
+        q: "Is this budget public?",
+        a:
+          budgetData.type === "Public"
+            ? "Yes, this is a public budget."
+            : "No, this is a private budget.",
+      },
+      {
+        q: "How can I verify transactions?",
+        a: "Use the transaction hash to verify individual transactions.",
+      },
     ];
   }
 
@@ -473,18 +544,24 @@ Return JSON:
         <p>Period: ${period}</p>
         <h3>Budget Changes (${changes.length})</h3>
         <ul>
-          ${changes.map(change => `<li>${change.name}: ${change.action}</li>`).join('')}
+          ${changes
+            .map((change) => `<li>${change.name}: ${change.action}</li>`)
+            .join("")}
         </ul>
         <h3>New Transactions (${transactions.length})</h3>
         <ul>
-          ${transactions.map(tx => `<li>${tx.description}: ₹${tx.amount.toLocaleString()}</li>`).join('')}
+          ${transactions
+            .map(
+              (tx) =>
+                `<li>${tx.description}: ₹${tx.amount.toLocaleString()}</li>`
+            )
+            .join("")}
         </ul>
         <p><a href="/dashboard">View Full Dashboard</a></p>
-      `
+      `,
     };
   }
 
-  // Receipt Verification
   async verifyReceipt(receiptUrl) {
     try {
       const prompt = `Analyze this receipt image/PDF and verify its authenticity. Check for:
@@ -509,18 +586,18 @@ Return JSON:
       }`;
 
       const response = await this.hf.textGeneration({
-        model: 'microsoft/DialoGPT-medium',
+        model: "microsoft/DialoGPT-medium",
         inputs: prompt,
         parameters: {
           max_new_tokens: 200,
           temperature: 0.2,
-          return_full_text: false
-        }
+          return_full_text: false,
+        },
       });
 
       return this.parseJSONResponse(response.generated_text);
     } catch (error) {
-      console.error('Error verifying receipt:', error);
+      console.error("Error verifying receipt:", error);
       return this.getFallbackVerification();
     }
   }
@@ -533,10 +610,10 @@ Return JSON:
       recommendations: ["Manual review recommended"],
       extractedData: {
         amount: "₹0",
-        date: new Date().toISOString().split('T')[0],
+        date: new Date().toISOString().split("T")[0],
         vendor: "Unknown",
-        description: "Receipt uploaded"
-      }
+        description: "Receipt uploaded",
+      },
     };
   }
 }

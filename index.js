@@ -114,7 +114,7 @@ app.use((req, res, next) => {
 
 app.get("/", async (req, res) => {
   try {
-    // Include all statuses by default, but allow filtering
+    
     const query = { type: "Public" };
     const searchQuery = req.query.q || "";
     const department = req.query.department || "";
@@ -122,29 +122,23 @@ app.get("/", async (req, res) => {
     const userState = req.query.state || "";
     const userCity = req.query.city || "";
     const page = parseInt(req.query.page) || 1;
-    const limit = 8; // Show 8 cards per page
-    const skip = (page - 1) * limit;
+    const limit = 8;     const skip = (page - 1) * limit;
 
     const searchConditions = [];
     
-    // Add status filter if specified, otherwise show all
     if (status) {
       searchConditions.push({ status: { $regex: status, $options: "i" } });
     }
     
     if (searchQuery) {
-      // Enhanced fuzzy search with spelling tolerance
-      const searchTerms = searchQuery.toLowerCase().split(/\s+/).filter(term => term.length > 0);
+            const searchTerms = searchQuery.toLowerCase().split(/\s+/).filter(term => term.length > 0);
       const fuzzyConditions = [];
       
       searchTerms.forEach(term => {
-        // Create multiple variations for spelling tolerance
-        const variations = [term];
+                const variations = [term];
         
-        // Add common spelling variations (simple approach)
-        if (term.length > 3) {
-          // Add variations with one character difference
-          for (let i = 0; i < term.length; i++) {
+                if (term.length > 3) {
+                    for (let i = 0; i < term.length; i++) {
             const variation = term.slice(0, i) + '.' + term.slice(i + 1);
             variations.push(variation);
           }
@@ -184,8 +178,7 @@ app.get("/", async (req, res) => {
       query.$and = searchConditions;
     }
 
-    // Get total count for pagination
-    const totalBudgets = await Budget.countDocuments(query);
+        const totalBudgets = await Budget.countDocuments(query);
     const totalPages = Math.ceil(totalBudgets / limit);
 
     const budgets = await Budget.find(query).populate("creator").sort({ createdAt: -1 }).skip(skip).limit(limit);
@@ -208,8 +201,7 @@ app.get("/", async (req, res) => {
     const states = indianStates;
     const cities = await Budget.distinct("city", { type: "Public" });
     
-    // Get transactions for each budget
-    const budgetsWithTransactions = await Promise.all(budgets.map(async (budget) => {
+        const budgetsWithTransactions = await Promise.all(budgets.map(async (budget) => {
       const budgetTransactions = await Transaction.find({ budgetId: budget._id })
         .sort({ createdAt: -1 })
         .limit(3);
@@ -343,8 +335,7 @@ app.get("/admin/editors/new", async (req, res) => {
   if (!req.session.isAdmin) return res.status(403).send("Admin access required");
   
   try {
-    // Get all budgets and their departments
-    const budgets = await Budget.find({}).populate('departments');
+        const budgets = await Budget.find({}).populate('departments');
     const departments = await Department.find({});
   
   res.render("createEditor", {
@@ -399,20 +390,17 @@ app.post("/admin/editors/new", async (req, res) => {
     
     await editor.save();
     
-    // Create corresponding User account for the editor
-    const user = new User({
+        const user = new User({
       name,
       email,
       password: hashedPassword,
       role: 'editor',
-      assignedBudgets: [], // Will be populated based on departments
-      assignedDepartments: assignedDepartments || []
+      assignedBudgets: [],       assignedDepartments: assignedDepartments || []
     });
     
     await user.save();
     
-    // Update editor with user ID
-    editor.userId = user._id;
+        editor.userId = user._id;
     await editor.save();
     
     await auditLog("create", "Editor", editor._id, editor.name, req, null, editor.toObject());
@@ -431,7 +419,6 @@ app.post("/admin/editors/new", async (req, res) => {
   }
 });
 
-// Generate multiple editors for different departments
 app.post("/admin/editors/generate-multiple", async (req, res) => {
   if (!req.session.isAdmin) return res.status(403).send("Admin access required");
   
@@ -446,16 +433,14 @@ app.post("/admin/editors/generate-multiple", async (req, res) => {
     const editors = [];
     const users = [];
     
-    // Generate editors for each department
-    for (let i = 1; i <= departmentCount; i++) {
+        for (let i = 1; i <= departmentCount; i++) {
       const editorName = `Editor ${i}`;
       const editorEmail = `editor${i}_${Date.now()}@bnb.com`;
       const editorPassword = Math.random().toString(36).slice(-8);
       
       const hashedPassword = await bcrypt.hash(editorPassword, 10);
       
-      // Create Editor
-      const editor = new Editor({
+            const editor = new Editor({
         name: editorName,
         email: editorEmail,
         password: hashedPassword,
@@ -472,8 +457,7 @@ app.post("/admin/editors/generate-multiple", async (req, res) => {
       
       await editor.save();
       
-      // Create corresponding User account
-      const user = new User({
+            const user = new User({
         name: editorName,
         email: editorEmail,
         password: hashedPassword,
@@ -484,8 +468,7 @@ app.post("/admin/editors/generate-multiple", async (req, res) => {
       
       await user.save();
       
-      // Update editor with user ID
-      editor.userId = user._id;
+            editor.userId = user._id;
       await editor.save();
       
       editors.push({
@@ -560,8 +543,7 @@ app.post("/budget/new", async (req, res) => {
     collegeType
   } = req.body;
   
-  // Validate based on project type
-  let validationError = false;
+    let validationError = false;
   let errorMessage = "All fields required";
   
   if (!name || !department || !state || !totalBudget || !fiscalYear || !approvedBy || !type) {
@@ -569,9 +551,7 @@ app.post("/budget/new", async (req, res) => {
   }
   
   if (projectType === 'government') {
-    // Government projects can use defaults for country and nationality
-    // No additional validation needed as they have defaults
-  } else if (projectType === 'college') {
+          } else if (projectType === 'college') {
     if (!collegeName || !collegeType) {
       validationError = true;
     }
@@ -654,22 +634,18 @@ app.get("/budget/:id", async (req, res) => {
     .populate("assignedEditors");
   if (!budget) return res.status(404).send("Budget not found");
     
-    // Get all transactions for this budget
-    const transactions = await Transaction.find({ budgetId: req.params.id })
+        const transactions = await Transaction.find({ budgetId: req.params.id })
       .populate('createdBy', 'name')
       .populate('approvedBy', 'name')
       .sort({ createdAt: -1 });
     
-    // Get departments for this budget
-    const departments = await Department.find({ budgetId: req.params.id });
+        const departments = await Department.find({ budgetId: req.params.id });
     
-    // Calculate actual spent amount from transactions
-    const actualSpent = transactions.reduce((sum, transaction) => {
+        const actualSpent = transactions.reduce((sum, transaction) => {
       return sum + (transaction.amount || 0);
     }, 0);
     
-    // Update budget spent amount if it's different
-    if (budget.spent !== actualSpent) {
+        if (budget.spent !== actualSpent) {
       budget.spent = actualSpent;
       budget.remaining = budget.totalBudget - actualSpent;
       await budget.save();
@@ -763,15 +739,13 @@ app.get("/admin/dashboard", async (req, res) => {
       }
     ]);
     
-    // Get recent transactions
-    const recentTransactions = await Transaction.find()
+        const recentTransactions = await Transaction.find()
       .populate('createdBy', 'name email')
       .populate('budgetId', 'name department')
       .sort({ createdAt: -1 })
       .limit(10);
     
-    // Get total transactions count
-    const totalTransactions = await Transaction.countDocuments();
+        const totalTransactions = await Transaction.countDocuments();
     
     const stats = editorStats[0] || { totalEditors: 0, activeEditors: 0 };
     stats.totalTransactions = totalTransactions;
@@ -788,7 +762,6 @@ app.get("/admin/dashboard", async (req, res) => {
   }
 });
 
-// Admin route to view all pending transactions
 app.get("/admin/transactions/pending", async (req, res) => {
   if (!req.session.isAdmin) return res.status(403).send("Admin access required");
   
@@ -808,7 +781,6 @@ app.get("/admin/transactions/pending", async (req, res) => {
   }
 });
 
-// Admin route to update budget status
 app.post("/admin/budget/:id/status", async (req, res) => {
   if (!req.session.isAdmin) return res.status(403).send("Admin access required");
   
@@ -837,7 +809,6 @@ app.post("/admin/budget/:id/status", async (req, res) => {
   }
 });
 
-// Admin transaction creation route
 app.post("/admin/transaction/new", upload.single('receipt'), async (req, res) => {
   if (!req.session.isAdmin) {
     return res.status(401).json({ success: false, error: "Admin access required" });
@@ -850,8 +821,7 @@ app.post("/admin/transaction/new", upload.single('receipt'), async (req, res) =>
       return res.status(400).json({ success: false, error: "Missing required fields" });
     }
     
-    // Verify budget exists
-    const budget = await Budget.findById(budgetId);
+        const budget = await Budget.findById(budgetId);
     if (!budget) {
       return res.status(404).json({ success: false, error: "Budget not found" });
     }
@@ -859,8 +829,7 @@ app.post("/admin/transaction/new", upload.single('receipt'), async (req, res) =>
     let receiptData = {};
     if (req.file) {
       try {
-        // Upload receipt to Cloudinary
-        const uploadResult = await cloudinaryService.uploadReceipt(req.file, Date.now());
+                const uploadResult = await cloudinaryService.uploadReceipt(req.file, Date.now());
         if (uploadResult.success) {
           receiptData = {
             url: uploadResult.url,
@@ -872,12 +841,10 @@ app.post("/admin/transaction/new", upload.single('receipt'), async (req, res) =>
           };
         } else {
           console.error('Cloudinary upload failed:', uploadResult.error);
-          // Continue without receipt if upload fails
-        }
+                  }
       } catch (uploadError) {
         console.error('Receipt upload error:', uploadError);
-        // Continue without receipt if upload fails
-      }
+              }
     }
     
     const transaction = new Transaction({
@@ -888,18 +855,15 @@ app.post("/admin/transaction/new", upload.single('receipt'), async (req, res) =>
       category,
       receipt: receiptData,
       createdBy: req.session.userId,
-      status: 'approved' // Admin transactions are auto-approved
-    });
+      status: 'approved'     });
     
     await transaction.save();
     
-    // Update budget spent amount
-    budget.spent += parseFloat(amount);
+        budget.spent += parseFloat(amount);
     budget.remaining = budget.totalBudget - budget.spent;
     await budget.save();
     
-    // Store transaction in blockchain
-    try {
+        try {
       const blockchainResult = await blockchainService.storeTransaction(transaction);
       if (blockchainResult.success) {
         transaction.blockchainId = blockchainResult.transactionId;
@@ -910,8 +874,7 @@ app.post("/admin/transaction/new", upload.single('receipt'), async (req, res) =>
       }
     } catch (blockchainError) {
       console.error('Blockchain storage error:', blockchainError);
-      // Continue without blockchain storage
-    }
+          }
     
     await auditLog("create", "Transaction", transaction._id, transaction.description, req, null, transaction.toObject());
     
@@ -922,7 +885,6 @@ app.post("/admin/transaction/new", upload.single('receipt'), async (req, res) =>
   }
 });
 
-// Chart data API routes for AI enhanced page
 app.get("/api/budget/:id/charts/spending", async (req, res) => {
   try {
     const budget = await Budget.findById(req.params.id);
@@ -1005,8 +967,7 @@ app.get("/api/budget/:id/charts/timeline", async (req, res) => {
     const transactions = await Transaction.find({ budgetId: req.params.id })
       .sort({ createdAt: 1 });
 
-    // Group transactions by month
-    const monthlyData = {};
+        const monthlyData = {};
     transactions.forEach(transaction => {
       const month = new Date(transaction.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
       if (!monthlyData[month]) {
@@ -1088,17 +1049,14 @@ app.post("/budget/:id/departments", async (req, res) => {
   const { name, budget } = req.body;
   
   try {
-    // Get the parent budget
-    const parentBudget = await Budget.findById(req.params.id);
+        const parentBudget = await Budget.findById(req.params.id);
     if (!parentBudget) return res.status(404).send("Budget not found");
     
-    // Calculate total allocated to existing departments
-    const existingDepartments = await Department.find({ budgetId: req.params.id });
+        const existingDepartments = await Department.find({ budgetId: req.params.id });
     const totalAllocated = existingDepartments.reduce((sum, dept) => sum + (dept.budget || 0), 0);
     const requestedAmount = parseFloat(budget);
     
-    // Check if adding this department would exceed the total budget
-    if (totalAllocated + requestedAmount > parentBudget.totalBudget) {
+        if (totalAllocated + requestedAmount > parentBudget.totalBudget) {
       const availableAmount = parentBudget.totalBudget - totalAllocated;
       return res.status(400).send(`Budget exceeded! You can only allocate ₹${availableAmount.toLocaleString()} more. Current allocation: ₹${totalAllocated.toLocaleString()}, Total budget: ₹${parentBudget.totalBudget.toLocaleString()}`);
     }
@@ -1207,8 +1165,7 @@ app.post("/vendor/:id/transactions", async (req, res) => {
   });
   await transaction.save();
   
-  // Update budget spent amount
-  const budget = await Budget.findById(project.departmentId.budgetId);
+    const budget = await Budget.findById(project.departmentId.budgetId);
   if (budget) {
     budget.spent += parseFloat(amount);
     budget.remaining = budget.totalBudget - budget.spent;
@@ -1234,8 +1191,7 @@ app.post("/transaction/:id/approve", async (req, res) => {
   
   await auditLog("approve", "Transaction", transaction._id, transaction.description, req, oldData, transaction.toObject());
   
-  // Redirect to admin pending transactions page instead of vendor page
-  res.redirect("/admin/transactions/pending");
+    res.redirect("/admin/transactions/pending");
 });
 
 app.post("/transaction/:id/reject", async (req, res) => {
@@ -1252,8 +1208,7 @@ app.post("/transaction/:id/reject", async (req, res) => {
   
   await auditLog("reject", "Transaction", transaction._id, transaction.description, req, oldData, transaction.toObject());
   
-  // Redirect to admin pending transactions page instead of vendor page
-  res.redirect("/admin/transactions/pending");
+    res.redirect("/admin/transactions/pending");
 });
 
 app.post("/budget/:id/approve", async (req, res) => {
@@ -1415,7 +1370,6 @@ app.get("/editor/budget/:id", async (req, res) => {
   }
 });
 
-// EDITOR TRANSACTION CREATION
 app.get("/editor/transaction/new", async (req, res) => {
   if (!req.session.userId || req.session.userRole !== 'editor') {
     return res.redirect("/login");
@@ -1438,7 +1392,6 @@ app.get("/editor/transaction/new", async (req, res) => {
   }
 });
 
-// EDITOR BUDGET TRANSACTIONS VIEW
 app.get("/editor/budget/:id/transactions", async (req, res) => {
   if (!req.session.userId || req.session.userRole !== 'editor') {
     return res.redirect("/login");
@@ -1452,8 +1405,7 @@ app.get("/editor/budget/:id/transactions", async (req, res) => {
       return res.status(403).send("Unauthorized access to this budget");
     }
     
-    // Get transactions for this budget
-    const transactions = await Transaction.find({ budgetId: req.params.id })
+        const transactions = await Transaction.find({ budgetId: req.params.id })
       .populate('createdBy', 'name')
       .sort({ createdAt: -1 });
     
@@ -1469,7 +1421,6 @@ app.get("/editor/budget/:id/transactions", async (req, res) => {
   }
 });
 
-// EDITOR PENDING TRANSACTIONS
 app.get("/editor/transactions/pending", async (req, res) => {
   if (!req.session.userId || req.session.userRole !== 'editor') {
     return res.redirect("/login");
@@ -1507,8 +1458,7 @@ app.post("/editor/transaction/new", upload.single('receipt'), async (req, res) =
       return res.status(400).json({ success: false, error: "Missing required fields" });
     }
     
-    // Verify user has access to this budget
-    const user = await User.findById(req.session.userId);
+        const user = await User.findById(req.session.userId);
     if (!user) {
       return res.status(404).json({ success: false, error: "User not found" });
     }
@@ -1520,8 +1470,7 @@ app.post("/editor/transaction/new", upload.single('receipt'), async (req, res) =
     let receiptData = {};
     if (req.file) {
       try {
-        // Upload receipt to Cloudinary
-        const uploadResult = await cloudinaryService.uploadReceipt(req.file, Date.now());
+                const uploadResult = await cloudinaryService.uploadReceipt(req.file, Date.now());
         if (uploadResult.success) {
           receiptData = {
             url: uploadResult.url,
@@ -1533,12 +1482,10 @@ app.post("/editor/transaction/new", upload.single('receipt'), async (req, res) =
           };
         } else {
           console.error('Cloudinary upload failed:', uploadResult.error);
-          // Continue without receipt if upload fails
-        }
+                  }
       } catch (uploadError) {
         console.error('Receipt upload error:', uploadError);
-        // Continue without receipt if upload fails
-      }
+              }
     }
     
     const transaction = new Transaction({
@@ -1556,16 +1503,14 @@ app.post("/editor/transaction/new", upload.single('receipt'), async (req, res) =
     
     await transaction.save();
     
-    // Update budget spent amount
-    const budget = await Budget.findById(budgetId);
+        const budget = await Budget.findById(budgetId);
     if (budget) {
       budget.spent += parseFloat(amount);
       budget.remaining = budget.totalBudget - budget.spent;
       await budget.save();
     }
     
-    // Store transaction in blockchain
-    try {
+        try {
       const blockchainResult = await blockchainService.storeTransaction(transaction);
       if (blockchainResult.success) {
         transaction.blockchainId = blockchainResult.transactionId;
@@ -1576,46 +1521,28 @@ app.post("/editor/transaction/new", upload.single('receipt'), async (req, res) =
       }
     } catch (blockchainError) {
       console.error('Blockchain storage error:', blockchainError);
-      // Continue without blockchain storage
-    }
+          }
     
-    // AI Classification (disabled to prevent crashes)
-    // try {
-    //   const classification = await aiService.classifyTransaction(transaction, { _id: budgetId });
-    //   if (classification && classification[0]) {
-    //     transaction.aiClassification = classification[0];
-    //     await transaction.save();
-    //   }
-    // } catch (aiError) {
-    //   console.error('AI classification error:', aiError);
-    //   // Continue without AI classification
-    // }
-    
-    // Update user stats (optional, don't fail if it doesn't work)
-    try {
+                                                
+        try {
       user.transactionsSubmitted = (user.transactionsSubmitted || 0) + 1;
       if (req.file) user.receiptsUploaded = (user.receiptsUploaded || 0) + 1;
       await user.save();
     } catch (userError) {
       console.error('User stats update error:', userError);
-      // Continue without updating user stats
-    }
+          }
     
-    // Award badges (optional, don't fail if it doesn't work)
-    try {
+        try {
       await awardBadges(user);
     } catch (badgeError) {
       console.error('Badge awarding error:', badgeError);
-      // Continue without awarding badges
-    }
+          }
     
-    // Audit log (optional, don't fail if it doesn't work)
-    try {
+        try {
       await auditLog("create", "Transaction", transaction._id, transaction.description, req, null, transaction.toObject());
     } catch (auditError) {
       console.error('Audit log error:', auditError);
-      // Continue without audit log
-    }
+          }
     
     res.json({ success: true, message: "Transaction created successfully", transactionId: transaction._id });
   } catch (error) {
@@ -1624,7 +1551,6 @@ app.post("/editor/transaction/new", upload.single('receipt'), async (req, res) =
   }
 });
 
-// RECEIPT UPLOAD AND OCR PROCESSING
 app.get("/editor/receipts/upload", async (req, res) => {
   if (!req.session.userId || req.session.userRole !== 'editor') {
     return res.redirect("/login");
@@ -1656,18 +1582,15 @@ app.post("/editor/receipts/upload", upload.single('receipt'), async (req, res) =
       return res.status(400).json({ success: false, error: "No file uploaded" });
     }
     
-    // Upload to Cloudinary
-    const uploadResult = await cloudinaryService.uploadReceipt(req.file, Date.now());
+        const uploadResult = await cloudinaryService.uploadReceipt(req.file, Date.now());
     
     if (!uploadResult.success) {
       return res.status(500).json({ success: false, error: uploadResult.error });
     }
     
-    // Process with OCR
-    const ocrResult = await ocrService.processReceiptFromUrl(uploadResult.url);
+        const ocrResult = await ocrService.processReceiptFromUrl(uploadResult.url);
     
-    // AI Receipt Verification
-    const verification = await aiService.verifyReceipt(uploadResult.url);
+        const verification = await aiService.verifyReceipt(uploadResult.url);
     
     res.json({
       success: true,
@@ -1683,7 +1606,6 @@ app.post("/editor/receipts/upload", upload.single('receipt'), async (req, res) =
   }
 });
 
-// OCR PROCESSING API
 app.post("/api/ocr/process", upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
@@ -1699,7 +1621,6 @@ app.post("/api/ocr/process", upload.single('image'), async (req, res) => {
   }
 });
 
-// OCR PROCESSING FROM URL
 app.post("/api/ocr/process-url", async (req, res) => {
   try {
     const { imageUrl } = req.body;
@@ -1717,7 +1638,6 @@ app.post("/api/ocr/process-url", async (req, res) => {
   }
 });
 
-// SIMPLE CLOUDINARY UPLOAD ROUTE
 app.post('/upload', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
@@ -1738,7 +1658,6 @@ app.post('/upload', upload.single('image'), async (req, res) => {
   }
 });
 
-// ADD EXPENSE WITH RECEIPT
 app.post("/budget/:id/add-expense", upload.single('receipt'), async (req, res) => {
   if (!req.session.userId) return res.status(403).json({ error: "Login required" });
   
@@ -1746,8 +1665,7 @@ app.post("/budget/:id/add-expense", upload.single('receipt'), async (req, res) =
     const budget = await Budget.findById(req.params.id);
     if (!budget) return res.status(404).json({ error: "Budget not found" });
     
-    // Check if user has permission to add expenses
-    const user = await User.findById(req.session.userId);
+        const user = await User.findById(req.session.userId);
     const isCreator = budget.creator.toString() === req.session.userId;
     const isAssignedEditor = budget.assignedEditors.some(editor => 
       typeof editor === 'string' ? editor === req.session.userId : editor.toString() === req.session.userId
@@ -1769,8 +1687,7 @@ app.post("/budget/:id/add-expense", upload.single('receipt'), async (req, res) =
     
     let receiptData = {};
     if (req.file) {
-      // Upload receipt to Cloudinary
-      const uploadResult = await cloudinaryService.uploadReceipt(req.file, Date.now());
+            const uploadResult = await cloudinaryService.uploadReceipt(req.file, Date.now());
       if (uploadResult.success) {
         receiptData = {
           url: uploadResult.url,
@@ -1783,8 +1700,7 @@ app.post("/budget/:id/add-expense", upload.single('receipt'), async (req, res) =
       }
     }
     
-    // Create expense object
-    const expense = {
+        const expense = {
       description,
       amount: parseFloat(amount),
       category: category || 'other',
@@ -1795,8 +1711,7 @@ app.post("/budget/:id/add-expense", upload.single('receipt'), async (req, res) =
       addedAt: new Date()
     };
     
-    // Add expense to budget
-    budget.expenses.push(expense);
+        budget.expenses.push(expense);
     budget.spent += expense.amount;
     budget.remaining = budget.totalBudget - budget.spent;
     
@@ -1815,17 +1730,14 @@ app.post("/budget/:id/add-expense", upload.single('receipt'), async (req, res) =
   }
 });
 
-// DATA MIGRATION ROUTE - Fix existing data
 app.get("/fix-data", async (req, res) => {
   try {
-    // Fix budgets with string creator values
-    await Budget.updateMany(
+        await Budget.updateMany(
       { creator: { $type: "string" } },
       { $set: { creator: new mongoose.Types.ObjectId() } }
     );
     
-    // Fix transactions with missing required fields
-    await Transaction.updateMany(
+        await Transaction.updateMany(
       { $or: [
         { vendorId: { $exists: false } },
         { projectId: { $exists: false } },
@@ -1843,16 +1755,13 @@ app.get("/fix-data", async (req, res) => {
 
 
 
-// AI-POWERED FEATURES
 
-// Chatbot API
 app.post("/api/chatbot", async (req, res) => {
   const USER_PROMPT = req.body.message;
   if (!USER_PROMPT) return res.json({ reply: "No message provided." });
   
   try {
-    // Use a simple fallback response instead of external API
-    const responses = [
+        const responses = [
       "I can help you understand budget transparency and fund management. What specific information are you looking for?",
       "Budget transparency ensures public funds are used responsibly. You can view detailed breakdowns of spending and allocations.",
       "For budget verification, you can use the verification system to check individual transactions and their authenticity.",
@@ -1862,8 +1771,7 @@ app.post("/api/chatbot", async (req, res) => {
       "The system provides real-time updates on budget utilization and spending patterns across different categories."
     ];
     
-    // Simple keyword-based responses
-    const lowerPrompt = USER_PROMPT.toLowerCase();
+        const lowerPrompt = USER_PROMPT.toLowerCase();
     let reply = responses[Math.floor(Math.random() * responses.length)];
     
     if (lowerPrompt.includes('verify') || lowerPrompt.includes('verification')) {
@@ -1885,7 +1793,6 @@ app.post("/api/chatbot", async (req, res) => {
   }
 });
 
-// Budget Summary API
 app.get("/api/budget/:id/summary", async (req, res) => {
   try {
     const budget = await Budget.findById(req.params.id);
@@ -1899,7 +1806,6 @@ app.get("/api/budget/:id/summary", async (req, res) => {
   }
 });
 
-// Transaction Classification API
 app.post("/api/transaction/:id/classify", async (req, res) => {
   try {
     const transaction = await Transaction.findById(req.params.id).populate('budgetId');
@@ -1913,7 +1819,6 @@ app.post("/api/transaction/:id/classify", async (req, res) => {
   }
 });
 
-// FAQ Generation API
 app.get("/api/budget/:id/faq", async (req, res) => {
   try {
     const budget = await Budget.findById(req.params.id);
@@ -1927,7 +1832,6 @@ app.get("/api/budget/:id/faq", async (req, res) => {
   }
 });
 
-// Sankey Data API
 app.get("/api/budget/:id/sankey", async (req, res) => {
   try {
     const budget = await Budget.findById(req.params.id)
@@ -1952,7 +1856,6 @@ app.get("/api/budget/:id/sankey", async (req, res) => {
 });
 
 
-// QR Code Generation API
 app.get("/api/transaction/:id/qr", async (req, res) => {
   try {
     const transaction = await Transaction.findById(req.params.id);
@@ -1966,7 +1869,6 @@ app.get("/api/transaction/:id/qr", async (req, res) => {
   }
 });
 
-// Chart Data APIs
 app.get("/api/budget/:id/charts/spending", async (req, res) => {
   try {
     const budget = await Budget.findById(req.params.id);
@@ -2007,11 +1909,9 @@ app.get("/api/budget/:id/charts/vendors", async (req, res) => {
     const budget = await Budget.findById(req.params.id);
     if (!budget) return res.status(404).json({ error: "Budget not found" });
 
-    // Get transactions for this budget
-    const transactions = await Transaction.find({ budgetId: req.params.id, status: 'approved' });
+        const transactions = await Transaction.find({ budgetId: req.params.id, status: 'approved' });
     
-    // Group by vendor (if vendor info is available) or show basic spending breakdown
-    const vendorSpending = {};
+        const vendorSpending = {};
     transactions.forEach(transaction => {
       const vendor = transaction.notes || 'General';
       vendorSpending[vendor] = (vendorSpending[vendor] || 0) + transaction.amount;
@@ -2033,8 +1933,7 @@ app.get("/api/budget/:id/charts/vendors", async (req, res) => {
       };
       res.json(chartData);
     } else {
-      // Fallback to basic spending breakdown
-      const data = {
+            const data = {
         labels: ['Spent', 'Remaining'],
         datasets: [{
           data: [budget.spent, budget.remaining],
@@ -2049,7 +1948,6 @@ app.get("/api/budget/:id/charts/vendors", async (req, res) => {
   }
 });
 
-// Get transactions for a budget
 app.get("/api/budget/:id/transactions", async (req, res) => {
   try {
     const transactions = await Transaction.find({ budgetId: req.params.id })
@@ -2063,7 +1961,6 @@ app.get("/api/budget/:id/transactions", async (req, res) => {
   }
 });
 
-// Chatbot API route
 app.post("/api/chatbot/ask", async (req, res) => {
   try {
     const { message, budgetId, context } = req.body;
@@ -2072,20 +1969,17 @@ app.post("/api/chatbot/ask", async (req, res) => {
       return res.status(400).json({ success: false, error: "Missing required fields" });
     }
     
-    // Get budget details
-    const budget = await Budget.findById(budgetId);
+        const budget = await Budget.findById(budgetId);
     if (!budget) {
       return res.status(404).json({ success: false, error: "Budget not found" });
     }
     
-    // Get recent transactions for context
-    const transactions = await Transaction.find({ budgetId })
+        const transactions = await Transaction.find({ budgetId })
       .sort({ createdAt: -1 })
       .limit(10)
       .populate('createdBy', 'name');
     
-    // Create context for AI
-    const budgetContext = {
+        const budgetContext = {
       budgetName: budget.name,
       department: budget.department,
       state: budget.state,
@@ -2103,8 +1997,7 @@ app.post("/api/chatbot/ask", async (req, res) => {
       }))
     };
     
-    // Simple AI response based on keywords and context
-    let response = generateAIResponse(message, budgetContext);
+        let response = generateAIResponse(message, budgetContext);
     
     res.json({ success: true, response });
   } catch (error) {
@@ -2116,8 +2009,7 @@ app.post("/api/chatbot/ask", async (req, res) => {
 function generateAIResponse(message, context) {
   const lowerMessage = message.toLowerCase();
   
-  // Budget overview questions
-  if (lowerMessage.includes('budget') && (lowerMessage.includes('overview') || lowerMessage.includes('summary'))) {
+    if (lowerMessage.includes('budget') && (lowerMessage.includes('overview') || lowerMessage.includes('summary'))) {
     return `Here's an overview of the ${context.budgetName} budget:
 
 📊 **Budget Details:**
@@ -2132,8 +2024,7 @@ function generateAIResponse(message, context) {
 The budget is ${((context.spent / context.totalBudget) * 100).toFixed(1)}% utilized.`;
   }
   
-  // Spending questions
-  if (lowerMessage.includes('spent') || lowerMessage.includes('spending')) {
+    if (lowerMessage.includes('spent') || lowerMessage.includes('spending')) {
     return `Current spending for ${context.budgetName}:
 
 💰 **Spending Summary:**
@@ -2144,8 +2035,7 @@ The budget is ${((context.spent / context.totalBudget) * 100).toFixed(1)}% utili
 ${context.spent > context.totalBudget * 0.8 ? '⚠️ **Warning:** Budget utilization is over 80%. Consider monitoring expenses closely.' : '✅ Budget utilization is within normal limits.'}`;
   }
   
-  // Transaction questions
-  if (lowerMessage.includes('transaction') || lowerMessage.includes('expense')) {
+    if (lowerMessage.includes('transaction') || lowerMessage.includes('expense')) {
     if (context.recentTransactions.length > 0) {
       let response = `Recent transactions for ${context.budgetName}:\n\n`;
       context.recentTransactions.slice(0, 5).forEach((tx, index) => {
@@ -2157,8 +2047,7 @@ ${context.spent > context.totalBudget * 0.8 ? '⚠️ **Warning:** Budget utiliz
     }
   }
   
-  // Status questions
-  if (lowerMessage.includes('status') || lowerMessage.includes('state')) {
+    if (lowerMessage.includes('status') || lowerMessage.includes('state')) {
     return `The current status of ${context.budgetName} is **${context.status}**.
 
 ${context.status === 'draft' ? 'This budget is still in draft mode and not yet approved.' : ''}
@@ -2169,16 +2058,14 @@ ${context.status === 'finished' ? 'This budget has been completed.' : ''}
 ${context.status === 'rejected' ? 'This budget has been rejected.' : ''}`;
   }
   
-  // Department questions
-  if (lowerMessage.includes('department')) {
+    if (lowerMessage.includes('department')) {
     return `The ${context.budgetName} budget belongs to the **${context.department}** department.
 
 📍 **Location:** ${context.city}, ${context.state}
 📅 **Fiscal Year:** ${context.fiscalYear}`;
   }
   
-  // Help questions
-  if (lowerMessage.includes('help') || lowerMessage.includes('what can you do')) {
+    if (lowerMessage.includes('help') || lowerMessage.includes('what can you do')) {
     return `I can help you with information about this budget! Here's what I can tell you about:
 
 🔍 **Budget Information:**
@@ -2196,8 +2083,7 @@ ${context.status === 'rejected' ? 'This budget has been rejected.' : ''}`;
 What would you like to know?`;
   }
   
-  // Default response
-  return `I understand you're asking about "${message}". 
+    return `I understand you're asking about "${message}". 
 
 For the ${context.budgetName} budget, I can help you with:
 - Budget overview and spending details
@@ -2215,28 +2101,22 @@ app.get("/api/budget/:id/export/pdf", async (req, res) => {
       return res.status(404).json({ error: "Budget not found" });
     }
 
-    // Get transactions for this budget
-    const transactions = await Transaction.find({ budgetId: req.params.id })
+        const transactions = await Transaction.find({ budgetId: req.params.id })
       .populate('createdBy', 'name')
       .sort({ createdAt: -1 });
 
-    // Create PDF
-    const doc = new PDFDocument();
+        const doc = new PDFDocument();
     
-    // Set response headers
-    res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="budget-report-${budget.name.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf"`);
     
-    // Pipe PDF to response
-    doc.pipe(res);
+        doc.pipe(res);
 
-    // Add title
-    doc.fontSize(20).text('Budget Report', 50, 50);
+        doc.fontSize(20).text('Budget Report', 50, 50);
     doc.fontSize(16).text(budget.name, 50, 80);
     doc.fontSize(12).text(`Generated on: ${new Date().toLocaleDateString()}`, 50, 100);
 
-    // Add budget details
-    doc.fontSize(14).text('Budget Details', 50, 130);
+        doc.fontSize(14).text('Budget Details', 50, 130);
     doc.fontSize(10).text(`Department: ${budget.department}`, 50, 150);
     doc.text(`Location: ${budget.city}, ${budget.state}`, 50, 165);
     doc.text(`Fiscal Year: ${budget.fiscalYear}`, 50, 180);
@@ -2246,8 +2126,7 @@ app.get("/api/budget/:id/export/pdf", async (req, res) => {
     doc.text(`Remaining: ₹${budget.remaining.toLocaleString()}`, 50, 240);
     doc.text(`Utilization: ${((budget.spent / budget.totalBudget) * 100).toFixed(1)}%`, 50, 255);
 
-    // Add transactions section
-    if (transactions.length > 0) {
+        if (transactions.length > 0) {
       doc.fontSize(14).text('Recent Transactions', 50, 285);
       
       let yPosition = 305;
@@ -2289,7 +2168,6 @@ app.get("/api/budget/:id/export/pdf", async (req, res) => {
   }
 });
 
-// Public Verification Page
 app.get("/verify/:hash", async (req, res) => {
   try {
     const transaction = await Transaction.findOne({ transactionHash: req.params.hash })
@@ -2321,7 +2199,6 @@ app.get("/verify/:hash", async (req, res) => {
   }
 });
 
-// Enhanced Budget Details with AI Features
 app.get("/budget/:id/enhanced", async (req, res) => {
   try {
     const budget = await Budget.findById(req.params.id)
@@ -2338,14 +2215,12 @@ app.get("/budget/:id/enhanced", async (req, res) => {
     
     if (!budget) return res.status(404).send("Budget not found");
     
-    // Get all transactions for this budget
-    const transactions = await Transaction.find({ budgetId: req.params.id })
+        const transactions = await Transaction.find({ budgetId: req.params.id })
       .populate('createdBy', 'name')
       .populate('approvedBy', 'name')
       .sort({ createdAt: -1 });
     
-    // Create comprehensive context for AI
-    const budgetContext = {
+        const budgetContext = {
       name: budget.name,
       department: budget.department,
       state: budget.state,
@@ -2370,8 +2245,7 @@ app.get("/budget/:id/enhanced", async (req, res) => {
       }))
     };
     
-    // Generate AI-powered content with full context
-    const [summary, faq, sankeyData] = await Promise.all([
+        const [summary, faq, sankeyData] = await Promise.all([
       aiService.generateBudgetSummary(budget, budgetContext),
       aiService.generateFAQ(budget, budgetContext),
       aiService.generateSankeyData(budget, budgetContext)
@@ -2392,7 +2266,6 @@ app.get("/budget/:id/enhanced", async (req, res) => {
   }
 });
 
-// STATE-WISE BUDGET VIEW
 app.get("/budgets/state/:state", async (req, res) => {
   try {
     const state = req.params.state;
@@ -2433,7 +2306,6 @@ app.get("/budgets/state/:state", async (req, res) => {
   }
 });
 
-// DEPARTMENT-WISE BUDGET VIEW
 app.get("/budgets/department/:department", async (req, res) => {
   try {
     const department = req.params.department;
@@ -2474,7 +2346,6 @@ app.get("/budgets/department/:department", async (req, res) => {
   }
 });
 
-// EXPORT REPORT ROUTE
 app.get("/api/budget/:id/export", async (req, res) => {
   try {
     const budget = await Budget.findById(req.params.id)
@@ -2491,14 +2362,12 @@ app.get("/api/budget/:id/export", async (req, res) => {
     
     if (!budget) return res.status(404).send("Budget not found");
     
-    // Get all transactions for this budget
-    const transactions = await Transaction.find({ budgetId: req.params.id })
+        const transactions = await Transaction.find({ budgetId: req.params.id })
       .populate('createdBy', 'name')
       .populate('approvedBy', 'name')
       .sort({ createdAt: -1 });
     
-    // Generate comprehensive report data
-    const reportData = {
+        const reportData = {
       budget: {
         name: budget.name,
         department: budget.department,
@@ -2538,8 +2407,7 @@ app.get("/api/budget/:id/export", async (req, res) => {
       generatedAt: new Date().toISOString()
     };
     
-    // Set headers for file download
-    res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Type', 'application/json');
     res.setHeader('Content-Disposition', `attachment; filename="budget-report-${budget.name.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.json"`);
     
     res.json(reportData);
@@ -2549,7 +2417,6 @@ app.get("/api/budget/:id/export", async (req, res) => {
   }
 });
 
-// ANOMALY DETECTION ROUTES
 app.get("/api/anomalies/:budgetId", async (req, res) => {
   try {
     const anomalies = await anomalyService.getActiveAnomalies(req.params.budgetId);
@@ -2575,7 +2442,6 @@ app.post("/api/anomalies/:anomalyId/resolve", async (req, res) => {
   }
 });
 
-// COMMUNITY FEEDBACK ROUTES
 app.post("/api/feedback", async (req, res) => {
   try {
     const feedbackData = {
@@ -2609,7 +2475,6 @@ app.get("/api/feedback/:budgetId", async (req, res) => {
   }
 });
 
-// PROJECT HIERARCHY ROUTES
 app.post("/api/budget/:budgetId/departments", async (req, res) => {
   try {
     const { name, allocatedBudget } = req.body;
@@ -2660,7 +2525,6 @@ app.post("/api/budget/:budgetId/departments/:deptIndex/vendors", async (req, res
   }
 });
 
-// Run anomaly detection after transaction creation
 app.post("/api/run-anomaly-detection/:budgetId", async (req, res) => {
   try {
     const anomalies = await anomalyService.runAnomalyDetection(req.params.budgetId);
@@ -2671,7 +2535,6 @@ app.post("/api/run-anomaly-detection/:budgetId", async (req, res) => {
   }
 });
 
-// BUDGET VISUALIZATION ROUTE
 app.get("/budget/:id/visualization", async (req, res) => {
   try {
     const budget = await Budget.findById(req.params.id);
@@ -2689,7 +2552,6 @@ app.get("/budget/:id/visualization", async (req, res) => {
   }
 });
 
-// DEBUG TEST ROUTE
 app.get("/debug/transaction", async (req, res) => {
   try {
     res.json({ 
@@ -2704,5 +2566,4 @@ app.get("/debug/transaction", async (req, res) => {
 });
 
 app.listen(PORT, () =>
-  console.log(`Server running at http://localhost:${PORT}`)
-);
+  console.log(`Server running at http:);

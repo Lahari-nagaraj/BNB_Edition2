@@ -202,8 +202,7 @@
 
 <script>
 function showBudgetVerification(budgetId) {
-  // Create verification modal
-  const modal = document.createElement('div');
+    const modal = document.createElement('div');
   modal.className = 'verification-modal';
   modal.innerHTML = `
     <div class="modal-content">
@@ -233,8 +232,7 @@ function showBudgetVerification(budgetId) {
   
   document.body.appendChild(modal);
   
-  // Add modal styles
-  const style = document.createElement('style');
+    const style = document.createElement('style');
   style.textContent = `
     .verification-modal {
       position: fixed;
@@ -298,7 +296,6 @@ function closeVerification() {
   }
 }
 
-// Close modal when clicking outside
 document.addEventListener('click', function(e) {
   if (e.target.classList.contains('verification-modal')) {
     closeVerification();

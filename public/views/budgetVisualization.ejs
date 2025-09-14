@@ -4,8 +4,12 @@
   <div class="dashboard-header">
     <h2>📊 Budget Visualization & Analytics</h2>
     <div class="header-actions">
-      <button onclick="refreshData()" class="btn-primary">🔄 Refresh Data</button>
-      <button onclick="exportData()" class="btn-secondary">📥 Export Report</button>
+      <button onclick="refreshData()" class="btn-primary">
+        🔄 Refresh Data
+      </button>
+      <button onclick="exportData()" class="btn-secondary">
+        📥 Export Report
+      </button>
     </div>
   </div>
 
@@ -23,7 +27,9 @@
       <div class="metric-content">
         <h3>Spent</h3>
         <p class="metric-value">₹<%= budget.spent.toLocaleString() %></p>
-        <p class="metric-percentage"><%= ((budget.spent / budget.totalBudget) * 100).toFixed(1) %>%</p>
+        <p class="metric-percentage">
+          <%= ((budget.spent / budget.totalBudget) * 100).toFixed(1) %>%
+        </p>
       </div>
     </div>
     <div class="metric-card">
@@ -31,7 +37,9 @@
       <div class="metric-content">
         <h3>Remaining</h3>
         <p class="metric-value">₹<%= budget.remaining.toLocaleString() %></p>
-        <p class="metric-percentage"><%= ((budget.remaining / budget.totalBudget) * 100).toFixed(1) %>%</p>
+        <p class="metric-percentage">
+          <%= ((budget.remaining / budget.totalBudget) * 100).toFixed(1) %>%
+        </p>
       </div>
     </div>
     <div class="metric-card">
@@ -48,26 +56,43 @@
     <h3>💬 Ask Questions About This Budget</h3>
     <div class="chatbot-container">
       <div class="chatbot-toggle">
-        <button id="chatbotToggle" class="chatbot-btn" onclick="toggleChatbot()">
+        <button
+          id="chatbotToggle"
+          class="chatbot-btn"
+          onclick="toggleChatbot()"
+        >
           <span class="chatbot-icon">🤖</span>
           <span class="chatbot-text">Ask AI Assistant</span>
         </button>
       </div>
-      <div id="chatbotWindow" class="chatbot-window" style="display: none;">
+      <div id="chatbotWindow" class="chatbot-window" style="display: none">
         <div class="chatbot-header">
           <h4>🤖 Budget AI Assistant</h4>
-          <button onclick="toggleChatbot()" class="chatbot-close">&times;</button>
+          <button onclick="toggleChatbot()" class="chatbot-close">
+            &times;
+          </button>
         </div>
         <div id="chatbotMessages" class="chatbot-messages">
           <div class="chatbot-message bot-message">
             <div class="message-content">
-              <p>Hello! I'm your Budget AI Assistant. I can help you understand this budget, analyze spending patterns, answer questions about transactions, and provide insights. What would you like to know?</p>
+              <p>
+                Hello! I'm your Budget AI Assistant. I can help you understand
+                this budget, analyze spending patterns, answer questions about
+                transactions, and provide insights. What would you like to know?
+              </p>
             </div>
           </div>
         </div>
         <div class="chatbot-input">
-          <input type="text" id="chatbotInput" placeholder="Ask me anything about this budget..." onkeypress="handleChatbotKeyPress(event)">
-          <button onclick="sendChatbotMessage()" class="chatbot-send">Send</button>
+          <input
+            type="text"
+            id="chatbotInput"
+            placeholder="Ask me anything about this budget..."
+            onkeypress="handleChatbotKeyPress(event)"
+          />
+          <button onclick="sendChatbotMessage()" class="chatbot-send">
+            Send
+          </button>
         </div>
       </div>
     </div>
@@ -76,26 +101,34 @@
   <div class="charts-section">
     <div class="chart-container">
       <h3>💰 Budget Overview</h3>
-      <div class="chart-loading" id="overviewChartLoading">Loading chart...</div>
-      <canvas id="overviewChart" style="display: none;"></canvas>
+      <div class="chart-loading" id="overviewChartLoading">
+        Loading chart...
+      </div>
+      <canvas id="overviewChart" style="display: none"></canvas>
     </div>
-    
+
     <div class="chart-container">
       <h3>📊 Transaction Categories</h3>
-      <div class="chart-loading" id="categoryChartLoading">Loading chart...</div>
-      <canvas id="categoryChart" style="display: none;"></canvas>
+      <div class="chart-loading" id="categoryChartLoading">
+        Loading chart...
+      </div>
+      <canvas id="categoryChart" style="display: none"></canvas>
     </div>
-    
+
     <div class="chart-container">
       <h3>📈 Spending Timeline</h3>
-      <div class="chart-loading" id="timelineChartLoading">Loading chart...</div>
-      <canvas id="timelineChart" style="display: none;"></canvas>
+      <div class="chart-loading" id="timelineChartLoading">
+        Loading chart...
+      </div>
+      <canvas id="timelineChart" style="display: none"></canvas>
     </div>
-    
+
     <div class="chart-container">
       <h3>🎯 Budget Utilization</h3>
-      <div class="chart-loading" id="utilizationChartLoading">Loading chart...</div>
-      <canvas id="utilizationChart" style="display: none;"></canvas>
+      <div class="chart-loading" id="utilizationChartLoading">
+        Loading chart...
+      </div>
+      <canvas id="utilizationChart" style="display: none"></canvas>
     </div>
   </div>
 
@@ -111,7 +144,10 @@
   <div class="feedback-section">
     <h3>💬 Community Feedback</h3>
     <div class="feedback-form">
-      <textarea id="feedbackMessage" placeholder="Share your thoughts, suggestions, or concerns about this budget..."></textarea>
+      <textarea
+        id="feedbackMessage"
+        placeholder="Share your thoughts, suggestions, or concerns about this budget..."
+      ></textarea>
       <div class="feedback-actions">
         <select id="feedbackType">
           <option value="suggestion">Suggestion</option>
@@ -120,7 +156,9 @@
           <option value="praise">Praise</option>
           <option value="concern">Concern</option>
         </select>
-        <button onclick="submitFeedback()" class="btn-primary">Submit Feedback</button>
+        <button onclick="submitFeedback()" class="btn-primary">
+          Submit Feedback
+        </button>
       </div>
     </div>
     <div id="feedbackList" class="feedback-list">
@@ -131,7 +169,7 @@
   <!-- AI-Powered Analysis Section -->
   <div class="ai-section">
     <h3>🤖 AI-Powered Analysis</h3>
-    
+
     <!-- AI Summary -->
     <div class="ai-summary-card">
       <h4>📊 Budget Summary</h4>
@@ -139,7 +177,7 @@
         <div class="loading">Generating AI summary...</div>
       </div>
     </div>
-    
+
     <!-- AI FAQ -->
     <div class="ai-faq-card">
       <h4>❓ Frequently Asked Questions</h4>
@@ -147,7 +185,7 @@
         <div class="loading">Generating FAQ...</div>
       </div>
     </div>
-    
+
     <!-- Fund Flow Visualization -->
     <div class="ai-sankey-card">
       <h4>🌊 Fund Flow Visualization</h4>
@@ -157,12 +195,13 @@
     </div>
   </div>
 
-
   <!-- Project Hierarchy Section -->
   <div class="hierarchy-section">
     <h3>🏗️ Project Hierarchy</h3>
     <div class="hierarchy-controls">
-      <button onclick="addDepartment()" class="btn-primary">➕ Add Department</button>
+      <button onclick="addDepartment()" class="btn-primary">
+        ➕ Add Department
+      </button>
     </div>
     <div id="hierarchyTree" class="hierarchy-tree">
       <!-- Project hierarchy will be displayed here -->
@@ -171,11 +210,8 @@
 </div>
 
 <!-- Chart.js CDN -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<!-- D3.js for Sankey diagram -->
-<script src="https://d3js.org/d3.v7.min.js"></script>
-<script src="https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
-
+<script src="https:<!-- D3.js for Sankey diagram -->
+<script src="https:<script src="https:
 <!-- Budget Data -->
 <script>
   window.budgetData = {
@@ -189,879 +225,962 @@
 </script>
 
 <style>
-.metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-
-.metric-card {
-  background: var(--card-gradient);
-  padding: 1.5rem;
-  border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-light);
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  transition: var(--transition);
-}
-
-.metric-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-medium);
-}
-
-.metric-icon {
-  font-size: 2.5rem;
-  opacity: 0.8;
-}
-
-.metric-content h3 {
-  margin: 0 0 0.5rem 0;
-  color: var(--secondary-color);
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.metric-value {
-  margin: 0;
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: var(--primary-color);
-}
-
-.metric-percentage {
-  margin: 0.25rem 0 0 0;
-  font-size: 0.9rem;
-  color: var(--success-color);
-  font-weight: 600;
-}
-
-.metric-subtitle {
-  margin: 0.25rem 0 0 0;
-  font-size: 0.8rem;
-  color: var(--secondary-color);
-}
-
-.charts-section {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 2rem;
-  margin-bottom: 2rem;
-}
-
-.chart-container {
-  background: white;
-  padding: 1.5rem;
-  border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-light);
-}
-
-.chart-container h3 {
-  margin: 0 0 1rem 0;
-  color: var(--secondary-color);
-  font-size: 1.1rem;
-}
-
-.chart-container canvas {
-  max-height: 300px;
-  min-height: 250px;
-  width: 100% !important;
-  height: auto !important;
-}
-
-.chart-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 250px;
-  color: #64748b;
-  font-style: italic;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px dashed #e2e8f0;
-}
-
-.anomaly-section, .feedback-section, .hierarchy-section, .ai-section, .chatbot-section {
-  background: white;
-  padding: 1.5rem;
-  border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-light);
-  margin-bottom: 2rem;
-}
-
-.ai-section {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-}
-
-.ai-section h3 {
-  color: white;
-  margin-bottom: 2rem;
-  text-align: center;
-  font-size: 1.5rem;
-}
-
-.ai-summary-card, .ai-faq-card, .ai-sankey-card {
-  background: rgba(255, 255, 255, 0.95);
-  color: #333;
-  padding: 1.5rem;
-  border-radius: var(--border-radius-lg);
-  margin-bottom: 1.5rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-.ai-summary-card h4, .ai-faq-card h4, .ai-sankey-card h4 {
-  color: #1e293b;
-  margin-bottom: 1rem;
-  font-size: 1.2rem;
-}
-
-.ai-content {
-  min-height: 100px;
-}
-
-.loading {
-  text-align: center;
-  color: #64748b;
-  font-style: italic;
-  padding: 2rem;
-}
-
-.sankey-container {
-  width: 100%;
-  height: 400px;
-  overflow-x: auto;
-}
-
-.sankey-container svg {
-  width: 100%;
-  height: 100%;
-}
-
-.faq-item {
-  margin-bottom: 1rem;
-  padding: 1rem;
-  background: #f8f9fa;
-  border-radius: var(--border-radius);
-  border-left: 4px solid #3b82f6;
-}
-
-.faq-item h5 {
-  margin: 0 0 0.5rem 0;
-  color: #1e293b;
-  font-weight: 600;
-}
-
-.faq-item p {
-  margin: 0;
-  color: #64748b;
-}
-
-.summary-content h5 {
-  color: #1e293b;
-  margin-bottom: 1rem;
-  font-size: 1.1rem;
-}
-
-.summary-bullets {
-  margin: 1rem 0;
-  padding-left: 1.5rem;
-}
-
-.summary-bullets li {
-  margin-bottom: 0.5rem;
-  color: #64748b;
-}
-
-.summary-numbers {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 1rem;
-  margin-top: 1.5rem;
-}
-
-.number-item {
-  text-align: center;
-  padding: 1rem;
-  background: #f8f9fa;
-  border-radius: var(--border-radius);
-}
-
-.number-label {
-  display: block;
-  font-size: 0.9rem;
-  color: #64748b;
-  margin-bottom: 0.5rem;
-}
-
-.number-value {
-  display: block;
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: #1e293b;
-}
-
-.anomaly-list, .feedback-list {
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.anomaly-item, .feedback-item {
-  padding: 1rem;
-  border: 1px solid #e2e8f0;
-  border-radius: var(--border-radius);
-  margin-bottom: 1rem;
-  background: #f8f9fa;
-}
-
-.anomaly-item.critical {
-  border-left: 4px solid #dc2626;
-  background: #fef2f2;
-}
-
-.anomaly-item.high {
-  border-left: 4px solid #f59e0b;
-  background: #fffbeb;
-}
-
-.anomaly-item.medium {
-  border-left: 4px solid #3b82f6;
-  background: #eff6ff;
-}
-
-.feedback-form {
-  margin-bottom: 2rem;
-}
-
-.feedback-form textarea {
-  width: 100%;
-  padding: 1rem;
-  border: 1px solid #e2e8f0;
-  border-radius: var(--border-radius);
-  margin-bottom: 1rem;
-  resize: vertical;
-  min-height: 100px;
-}
-
-.feedback-actions {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-}
-
-.feedback-actions select {
-  padding: 0.75rem;
-  border: 1px solid #e2e8f0;
-  border-radius: var(--border-radius);
-}
-
-.hierarchy-tree {
-  margin-top: 1rem;
-}
-
-.hierarchy-node {
-  margin: 0.5rem 0;
-  padding: 1rem;
-  border: 1px solid #e2e8f0;
-  border-radius: var(--border-radius);
-  background: #f8f9fa;
-}
-
-.hierarchy-node.department {
-  border-left: 4px solid var(--primary-color);
-}
-
-.hierarchy-node.vendor {
-  border-left: 4px solid var(--success-color);
-  margin-left: 2rem;
-}
-
-.header-actions {
-  display: flex;
-  gap: 1rem;
-}
-
-/* Chatbot Styles */
-.chatbot-container {
-  position: relative;
-  max-width: 500px;
-  margin: 0 auto;
-}
-
-.chatbot-toggle {
-  text-align: center;
-  margin-bottom: 1rem;
-}
-
-.chatbot-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  padding: 1rem 2rem;
-  border-radius: 50px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin: 0 auto;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-  animation: pulse 2s infinite;
-}
-
-.chatbot-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
-}
-
-.chatbot-btn:active {
-  animation: shake 0.5s ease-in-out;
-}
-
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
-}
-
-.chatbot-icon {
-  font-size: 1.5rem;
-  animation: bounce 1s infinite;
-}
-
-@keyframes bounce {
-  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-  40% { transform: translateY(-10px); }
-  60% { transform: translateY(-5px); }
-}
-
-.chatbot-window {
-  background: white;
-  border-radius: 15px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
-  border: 1px solid #e2e8f0;
-}
-
-.chatbot-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.chatbot-header h4 {
-  margin: 0;
-  font-size: 1.1rem;
-}
-
-.chatbot-close {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 1.5rem;
-  cursor: pointer;
-  padding: 0;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: background-color 0.3s ease;
-}
-
-.chatbot-close:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-}
-
-.chatbot-messages {
-  height: 300px;
-  overflow-y: auto;
-  padding: 1rem;
-  background: #f8f9fa;
-}
-
-.chatbot-message {
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-}
-
-.bot-message {
-  justify-content: flex-start;
-}
-
-.user-message {
-  justify-content: flex-end;
-}
-
-.message-content {
-  max-width: 80%;
-  padding: 0.75rem 1rem;
-  border-radius: 15px;
-  font-size: 0.9rem;
-  line-height: 1.4;
-}
-
-.bot-message .message-content {
-  background: white;
-  border: 1px solid #e2e8f0;
-  border-radius: 15px 15px 15px 5px;
-}
-
-.user-message .message-content {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border-radius: 15px 15px 5px 15px;
-}
-
-.chatbot-input {
-  display: flex;
-  padding: 1rem;
-  background: white;
-  border-top: 1px solid #e2e8f0;
-}
-
-.chatbot-input input {
-  flex: 1;
-  padding: 0.75rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 25px;
-  outline: none;
-  font-size: 0.9rem;
-  margin-right: 0.5rem;
-}
-
-.chatbot-input input:focus {
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.chatbot-send {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 25px;
-  cursor: pointer;
-  font-weight: 600;
-  transition: all 0.3s ease;
-}
-
-.chatbot-send:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-}
-
-.chatbot-send:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  transform: none;
-}
-
-@media (max-width: 768px) {
-  .charts-section {
-    grid-template-columns: 1fr;
-  }
-  
   .metrics-grid {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
   }
-  
+
+  .metric-card {
+    background: var(--card-gradient);
+    padding: 1.5rem;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-light);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: var(--transition);
+  }
+
+  .metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+  }
+
+  .metric-icon {
+    font-size: 2.5rem;
+    opacity: 0.8;
+  }
+
+  .metric-content h3 {
+    margin: 0 0 0.5rem 0;
+    color: var(--secondary-color);
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .metric-value {
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--primary-color);
+  }
+
+  .metric-percentage {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.9rem;
+    color: var(--success-color);
+    font-weight: 600;
+  }
+
+  .metric-subtitle {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.8rem;
+    color: var(--secondary-color);
+  }
+
+  .charts-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .chart-container {
+    background: white;
+    padding: 1.5rem;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-light);
+  }
+
+  .chart-container h3 {
+    margin: 0 0 1rem 0;
+    color: var(--secondary-color);
+    font-size: 1.1rem;
+  }
+
+  .chart-container canvas {
+    max-height: 300px;
+    min-height: 250px;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  .chart-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 250px;
+    color: #64748b;
+    font-style: italic;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px dashed #e2e8f0;
+  }
+
+  .anomaly-section,
+  .feedback-section,
+  .hierarchy-section,
+  .ai-section,
+  .chatbot-section {
+    background: white;
+    padding: 1.5rem;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-light);
+    margin-bottom: 2rem;
+  }
+
+  .ai-section {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+  }
+
+  .ai-section h3 {
+    color: white;
+    margin-bottom: 2rem;
+    text-align: center;
+    font-size: 1.5rem;
+  }
+
+  .ai-summary-card,
+  .ai-faq-card,
+  .ai-sankey-card {
+    background: rgba(255, 255, 255, 0.95);
+    color: #333;
+    padding: 1.5rem;
+    border-radius: var(--border-radius-lg);
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .ai-summary-card h4,
+  .ai-faq-card h4,
+  .ai-sankey-card h4 {
+    color: #1e293b;
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+  }
+
+  .ai-content {
+    min-height: 100px;
+  }
+
+  .loading {
+    text-align: center;
+    color: #64748b;
+    font-style: italic;
+    padding: 2rem;
+  }
+
+  .sankey-container {
+    width: 100%;
+    height: 400px;
+    overflow-x: auto;
+  }
+
+  .sankey-container svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .faq-item {
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: var(--border-radius);
+    border-left: 4px solid #3b82f6;
+  }
+
+  .faq-item h5 {
+    margin: 0 0 0.5rem 0;
+    color: #1e293b;
+    font-weight: 600;
+  }
+
+  .faq-item p {
+    margin: 0;
+    color: #64748b;
+  }
+
+  .summary-content h5 {
+    color: #1e293b;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+  }
+
+  .summary-bullets {
+    margin: 1rem 0;
+    padding-left: 1.5rem;
+  }
+
+  .summary-bullets li {
+    margin-bottom: 0.5rem;
+    color: #64748b;
+  }
+
+  .summary-numbers {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+  }
+
+  .number-item {
+    text-align: center;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: var(--border-radius);
+  }
+
+  .number-label {
+    display: block;
+    font-size: 0.9rem;
+    color: #64748b;
+    margin-bottom: 0.5rem;
+  }
+
+  .number-value {
+    display: block;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #1e293b;
+  }
+
+  .anomaly-list,
+  .feedback-list {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .anomaly-item,
+  .feedback-item {
+    padding: 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+    background: #f8f9fa;
+  }
+
+  .anomaly-item.critical {
+    border-left: 4px solid #dc2626;
+    background: #fef2f2;
+  }
+
+  .anomaly-item.high {
+    border-left: 4px solid #f59e0b;
+    background: #fffbeb;
+  }
+
+  .anomaly-item.medium {
+    border-left: 4px solid #3b82f6;
+    background: #eff6ff;
+  }
+
+  .feedback-form {
+    margin-bottom: 2rem;
+  }
+
+  .feedback-form textarea {
+    width: 100%;
+    padding: 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+    resize: vertical;
+    min-height: 100px;
+  }
+
   .feedback-actions {
-    flex-direction: column;
-    align-items: stretch;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
   }
-}
+
+  .feedback-actions select {
+    padding: 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: var(--border-radius);
+  }
+
+  .hierarchy-tree {
+    margin-top: 1rem;
+  }
+
+  .hierarchy-node {
+    margin: 0.5rem 0;
+    padding: 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: var(--border-radius);
+    background: #f8f9fa;
+  }
+
+  .hierarchy-node.department {
+    border-left: 4px solid var(--primary-color);
+  }
+
+  .hierarchy-node.vendor {
+    border-left: 4px solid var(--success-color);
+    margin-left: 2rem;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 1rem;
+  }
+
+  /* Chatbot Styles */
+  .chatbot-container {
+    position: relative;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  .chatbot-toggle {
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+
+  .chatbot-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 1rem 2rem;
+    border-radius: 50px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0 auto;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    animation: pulse 2s infinite;
+  }
+
+  .chatbot-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+  }
+
+  .chatbot-btn:active {
+    animation: shake 0.5s ease-in-out;
+  }
+
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  @keyframes shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    25% {
+      transform: translateX(-5px);
+    }
+    75% {
+      transform: translateX(5px);
+    }
+  }
+
+  .chatbot-icon {
+    font-size: 1.5rem;
+    animation: bounce 1s infinite;
+  }
+
+  @keyframes bounce {
+    0%,
+    20%,
+    50%,
+    80%,
+    100% {
+      transform: translateY(0);
+    }
+    40% {
+      transform: translateY(-10px);
+    }
+    60% {
+      transform: translateY(-5px);
+    }
+  }
+
+  .chatbot-window {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    border: 1px solid #e2e8f0;
+  }
+
+  .chatbot-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .chatbot-header h4 {
+    margin: 0;
+    font-size: 1.1rem;
+  }
+
+  .chatbot-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.3s ease;
+  }
+
+  .chatbot-close:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .chatbot-messages {
+    height: 300px;
+    overflow-y: auto;
+    padding: 1rem;
+    background: #f8f9fa;
+  }
+
+  .chatbot-message {
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .bot-message {
+    justify-content: flex-start;
+  }
+
+  .user-message {
+    justify-content: flex-end;
+  }
+
+  .message-content {
+    max-width: 80%;
+    padding: 0.75rem 1rem;
+    border-radius: 15px;
+    font-size: 0.9rem;
+    line-height: 1.4;
+  }
+
+  .bot-message .message-content {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 15px 15px 15px 5px;
+  }
+
+  .user-message .message-content {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 15px 15px 5px 15px;
+  }
+
+  .chatbot-input {
+    display: flex;
+    padding: 1rem;
+    background: white;
+    border-top: 1px solid #e2e8f0;
+  }
+
+  .chatbot-input input {
+    flex: 1;
+    padding: 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 25px;
+    outline: none;
+    font-size: 0.9rem;
+    margin-right: 0.5rem;
+  }
+
+  .chatbot-input input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+
+  .chatbot-send {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 25px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+  }
+
+  .chatbot-send:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  }
+
+  .chatbot-send:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  @media (max-width: 768px) {
+    .charts-section {
+      grid-template-columns: 1fr;
+    }
+
+    .metrics-grid {
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+
+    .feedback-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
 </style>
 
 <script>
-let charts = {};
+  let charts = {};
 
-// Budget data variables
-const budgetSpent = window.budgetData.spent;
-const budgetRemaining = window.budgetData.remaining;
-const budgetTotal = window.budgetData.totalBudget;
+  const budgetSpent = window.budgetData.spent;
+  const budgetRemaining = window.budgetData.remaining;
+  const budgetTotal = window.budgetData.totalBudget;
 
-// Initialize charts when page loads
-document.addEventListener('DOMContentLoaded', function() {
-  initializeCharts();
-  loadAnomalies();
-  loadFeedback();
-  loadHierarchy();
-  loadAIData();
-});
+  document.addEventListener("DOMContentLoaded", function () {
+    initializeCharts();
+    loadAnomalies();
+    loadFeedback();
+    loadHierarchy();
+    loadAIData();
+  });
 
-async function initializeCharts() {
-  try {
-    // Fetch transaction data for meaningful charts
-    let transactions = [];
+  async function initializeCharts() {
     try {
-      const response = await fetch(`/api/budget/<%= budget._id %>/transactions`);
-      const data = await response.json();
-      transactions = data.transactions || [];
-    } catch (error) {
-      console.warn('Failed to fetch transactions:', error);
-    }
-
-    // 1. Budget Overview Chart (Doughnut)
-    const overviewCtx = document.getElementById('overviewChart').getContext('2d');
-    const overviewData = {
-      labels: ['Spent', 'Remaining'],
-      datasets: [{
-        data: [budgetSpent, budgetRemaining],
-        backgroundColor: ['#ef4444', '#10b981'],
-        borderWidth: 0
-      }]
-    };
-    
-    charts.overview = new Chart(overviewCtx, {
-      type: 'doughnut',
-      data: overviewData,
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: 'bottom' }
-        }
+      let transactions = [];
+      try {
+        const response = await fetch(
+          `/api/budget/<%= budget._id %>/transactions`
+        );
+        const data = await response.json();
+        transactions = data.transactions || [];
+      } catch (error) {
+        console.warn("Failed to fetch transactions:", error);
       }
-    });
-    
-    document.getElementById('overviewChartLoading').style.display = 'none';
-    document.getElementById('overviewChart').style.display = 'block';
 
-    // 2. Transaction Categories Chart (Bar)
-    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
-    
-    // Group transactions by category
-    const categoryData = {};
-    transactions.forEach(tx => {
-      const category = tx.category || 'General';
-      categoryData[category] = (categoryData[category] || 0) + tx.amount;
-    });
-    
-    const categoryLabels = Object.keys(categoryData);
-    const categoryAmounts = Object.values(categoryData);
-    
-    const categoryChartData = {
-      labels: categoryLabels.length > 0 ? categoryLabels : ['General'],
-      datasets: [{
-        label: 'Amount (₹)',
-        data: categoryAmounts.length > 0 ? categoryAmounts : [budgetSpent],
-        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'],
-        borderWidth: 1
-      }]
-    };
-    
-    charts.category = new Chart(categoryCtx, {
-      type: 'bar',
-      data: categoryChartData,
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: {
-              callback: function(value) {
-                return '₹' + value.toLocaleString();
-              }
-            }
-          }
-        },
-        plugins: {
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                return context.dataset.label + ': ₹' + context.parsed.y.toLocaleString();
-              }
-            }
-          }
-        }
-      }
-    });
-    
-    document.getElementById('categoryChartLoading').style.display = 'none';
-    document.getElementById('categoryChart').style.display = 'block';
-
-    // 3. Spending Timeline Chart (Line)
-    const timelineCtx = document.getElementById('timelineChart').getContext('2d');
-    
-    // Group transactions by month
-    const monthlyData = {};
-    transactions.forEach(tx => {
-      const month = new Date(tx.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-      monthlyData[month] = (monthlyData[month] || 0) + tx.amount;
-    });
-    
-    const timelineLabels = Object.keys(monthlyData).sort();
-    const timelineAmounts = timelineLabels.map(month => monthlyData[month]);
-    
-    const timelineChartData = {
-      labels: timelineLabels.length > 0 ? timelineLabels : ['Current Month'],
-      datasets: [{
-        label: 'Monthly Spending',
-        data: timelineAmounts.length > 0 ? timelineAmounts : [budgetSpent],
-        borderColor: '#3b82f6',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        tension: 0.4,
-        fill: true
-      }]
-    };
-    
-    charts.timeline = new Chart(timelineCtx, {
-      type: 'line',
-      data: timelineChartData,
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          y: {
-            beginAtZero: true,
-            ticks: {
-              callback: function(value) {
-                return '₹' + value.toLocaleString();
-              }
-            }
-          }
-        },
-        plugins: {
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                return context.dataset.label + ': ₹' + context.parsed.y.toLocaleString();
-              }
-            }
-          }
-        }
-      }
-    });
-    
-    document.getElementById('timelineChartLoading').style.display = 'none';
-    document.getElementById('timelineChart').style.display = 'block';
-
-    // 4. Budget Utilization Chart (Gauge-style)
-    const utilizationCtx = document.getElementById('utilizationChart').getContext('2d');
-    
-    const utilizationPercentage = Math.round((budgetSpent / budgetTotal) * 100);
-    const remainingPercentage = 100 - utilizationPercentage;
-    
-    const utilizationData = {
-      labels: ['Utilized', 'Remaining'],
-      datasets: [{
-        data: [utilizationPercentage, remainingPercentage],
-        backgroundColor: [
-          utilizationPercentage > 80 ? '#ef4444' : utilizationPercentage > 60 ? '#f59e0b' : '#10b981',
-          '#e5e7eb'
+      const overviewCtx = document
+        .getElementById("overviewChart")
+        .getContext("2d");
+      const overviewData = {
+        labels: ["Spent", "Remaining"],
+        datasets: [
+          {
+            data: [budgetSpent, budgetRemaining],
+            backgroundColor: ["#ef4444", "#10b981"],
+            borderWidth: 0,
+          },
         ],
-        borderWidth: 0
-      }]
-    };
-    
-    charts.utilization = new Chart(utilizationCtx, {
-      type: 'doughnut',
-      data: utilizationData,
+      };
+
+      charts.overview = new Chart(overviewCtx, {
+        type: "doughnut",
+        data: overviewData,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: "bottom" },
+          },
+        },
+      });
+
+      document.getElementById("overviewChartLoading").style.display = "none";
+      document.getElementById("overviewChart").style.display = "block";
+
+      const categoryCtx = document
+        .getElementById("categoryChart")
+        .getContext("2d");
+
+      const categoryData = {};
+      transactions.forEach((tx) => {
+        const category = tx.category || "General";
+        categoryData[category] = (categoryData[category] || 0) + tx.amount;
+      });
+
+      const categoryLabels = Object.keys(categoryData);
+      const categoryAmounts = Object.values(categoryData);
+
+      const categoryChartData = {
+        labels: categoryLabels.length > 0 ? categoryLabels : ["General"],
+        datasets: [
+          {
+            label: "Amount (₹)",
+            data: categoryAmounts.length > 0 ? categoryAmounts : [budgetSpent],
+            backgroundColor: [
+              "#3b82f6",
+              "#10b981",
+              "#f59e0b",
+              "#ef4444",
+              "#8b5cf6",
+              "#06b6d4",
+            ],
+            borderWidth: 1,
+          },
+        ],
+      };
+
+      charts.category = new Chart(categoryCtx, {
+        type: "bar",
+        data: categoryChartData,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: function (value) {
+                  return "₹" + value.toLocaleString();
+                },
+              },
+            },
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  return (
+                    context.dataset.label +
+                    ": ₹" +
+                    context.parsed.y.toLocaleString()
+                  );
+                },
+              },
+            },
+          },
+        },
+      });
+
+      document.getElementById("categoryChartLoading").style.display = "none";
+      document.getElementById("categoryChart").style.display = "block";
+
+      const timelineCtx = document
+        .getElementById("timelineChart")
+        .getContext("2d");
+
+      const monthlyData = {};
+      transactions.forEach((tx) => {
+        const month = new Date(tx.createdAt).toLocaleDateString("en-US", {
+          month: "short",
+          year: "numeric",
+        });
+        monthlyData[month] = (monthlyData[month] || 0) + tx.amount;
+      });
+
+      const timelineLabels = Object.keys(monthlyData).sort();
+      const timelineAmounts = timelineLabels.map((month) => monthlyData[month]);
+
+      const timelineChartData = {
+        labels: timelineLabels.length > 0 ? timelineLabels : ["Current Month"],
+        datasets: [
+          {
+            label: "Monthly Spending",
+            data: timelineAmounts.length > 0 ? timelineAmounts : [budgetSpent],
+            borderColor: "#3b82f6",
+            backgroundColor: "rgba(59, 130, 246, 0.1)",
+            tension: 0.4,
+            fill: true,
+          },
+        ],
+      };
+
+      charts.timeline = new Chart(timelineCtx, {
+        type: "line",
+        data: timelineChartData,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: function (value) {
+                  return "₹" + value.toLocaleString();
+                },
+              },
+            },
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  return (
+                    context.dataset.label +
+                    ": ₹" +
+                    context.parsed.y.toLocaleString()
+                  );
+                },
+              },
+            },
+          },
+        },
+      });
+
+      document.getElementById("timelineChartLoading").style.display = "none";
+      document.getElementById("timelineChart").style.display = "block";
+
+      const utilizationCtx = document
+        .getElementById("utilizationChart")
+        .getContext("2d");
+
+      const utilizationPercentage = Math.round(
+        (budgetSpent / budgetTotal) * 100
+      );
+      const remainingPercentage = 100 - utilizationPercentage;
+
+      const utilizationData = {
+        labels: ["Utilized", "Remaining"],
+        datasets: [
+          {
+            data: [utilizationPercentage, remainingPercentage],
+            backgroundColor: [
+              utilizationPercentage > 80
+                ? "#ef4444"
+                : utilizationPercentage > 60
+                ? "#f59e0b"
+                : "#10b981",
+              "#e5e7eb",
+            ],
+            borderWidth: 0,
+          },
+        ],
+      };
+
+      charts.utilization = new Chart(utilizationCtx, {
+        type: "doughnut",
+        data: utilizationData,
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: "70%",
+          plugins: {
+            legend: { position: "bottom" },
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  return context.label + ": " + context.parsed + "%";
+                },
+              },
+            },
+          },
+        },
+      });
+
+      document.getElementById("utilizationChartLoading").style.display = "none";
+      document.getElementById("utilizationChart").style.display = "block";
+    } catch (error) {
+      console.error("Error initializing charts:", error);
+      initializeFallbackCharts();
+    }
+  }
+
+  function initializeFallbackCharts() {
+    document.querySelectorAll(".chart-loading").forEach((loading) => {
+      loading.style.display = "none";
+    });
+
+    document.querySelectorAll(".chart-container canvas").forEach((canvas) => {
+      canvas.style.display = "block";
+    });
+
+    const spendingCtx = document
+      .getElementById("spendingChart")
+      .getContext("2d");
+    charts.spending = new Chart(spendingCtx, {
+      type: "doughnut",
+      data: {
+        labels: ["Spent", "Remaining"],
+        datasets: [
+          {
+            data: [budgetSpent, budgetRemaining],
+            backgroundColor: ["#ef4444", "#10b981"],
+            borderWidth: 0,
+          },
+        ],
+      },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        cutout: '70%',
         plugins: {
-          legend: { position: 'bottom' },
-          tooltip: {
-            callbacks: {
-              label: function(context) {
-                return context.label + ': ' + context.parsed + '%';
-              }
-            }
-          }
-        }
-      }
+          legend: {
+            position: "bottom",
+          },
+        },
+      },
     });
-    
-    document.getElementById('utilizationChartLoading').style.display = 'none';
-    document.getElementById('utilizationChart').style.display = 'block';
-  } catch (error) {
-    console.error('Error initializing charts:', error);
-    // Fallback to basic charts with current budget data
-    initializeFallbackCharts();
+
+    const departmentCtx = document
+      .getElementById("departmentChart")
+      .getContext("2d");
+    charts.department = new Chart(departmentCtx, {
+      type: "bar",
+      data: {
+        labels: ["Total Budget", "Spent", "Remaining"],
+        datasets: [
+          {
+            label: "Amount (₹)",
+            data: [budgetTotal, budgetSpent, budgetRemaining],
+            backgroundColor: ["#3b82f6", "#ef4444", "#10b981"],
+            borderColor: ["#1d4ed8", "#dc2626", "#059669"],
+            borderWidth: 1,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function (value) {
+                return "₹" + value.toLocaleString();
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const trendsCtx = document.getElementById("trendsChart").getContext("2d");
+    charts.trends = new Chart(trendsCtx, {
+      type: "line",
+      data: {
+        labels: ["Current Month"],
+        datasets: [
+          {
+            label: "Spent This Month",
+            data: [budgetSpent],
+            borderColor: "#3b82f6",
+            backgroundColor: "rgba(59, 130, 246, 0.1)",
+            tension: 0.4,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function (value) {
+                return "₹" + value.toLocaleString();
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const vendorCtx = document.getElementById("vendorChart").getContext("2d");
+    charts.vendor = new Chart(vendorCtx, {
+      type: "pie",
+      data: {
+        labels: ["Spent", "Remaining"],
+        datasets: [
+          {
+            data: [budgetSpent, budgetRemaining],
+            backgroundColor: ["#ef4444", "#10b981"],
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: "bottom",
+          },
+        },
+      },
+    });
   }
-}
 
-function initializeFallbackCharts() {
-  // Hide all loading indicators
-  document.querySelectorAll('.chart-loading').forEach(loading => {
-    loading.style.display = 'none';
-  });
-  
-  // Show all canvas elements
-  document.querySelectorAll('.chart-container canvas').forEach(canvas => {
-    canvas.style.display = 'block';
-  });
-  
-  // Spending Pattern Chart
-  const spendingCtx = document.getElementById('spendingChart').getContext('2d');
-  charts.spending = new Chart(spendingCtx, {
-    type: 'doughnut',
-    data: {
-      labels: ['Spent', 'Remaining'],
-      datasets: [{
-        data: [budgetSpent, budgetRemaining],
-        backgroundColor: ['#ef4444', '#10b981'],
-        borderWidth: 0
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'bottom'
-        }
+  async function loadAnomalies() {
+    try {
+      const response = await fetch(`/api/anomalies/<%= budget._id %>`);
+      const data = await response.json();
+
+      const anomalyList = document.getElementById("anomalyList");
+      const anomalyCount = document.getElementById("anomalyCount");
+
+      anomalyCount.textContent = data.anomalies.length;
+
+      if (data.anomalies.length === 0) {
+        anomalyList.innerHTML =
+          '<p class="no-data">No anomalies detected. Great job! 🎉</p>';
+        return;
       }
-    }
-  });
 
-  // Department Chart - Show basic budget info
-  const departmentCtx = document.getElementById('departmentChart').getContext('2d');
-  charts.department = new Chart(departmentCtx, {
-    type: 'bar',
-    data: {
-      labels: ['Total Budget', 'Spent', 'Remaining'],
-      datasets: [{
-        label: 'Amount (₹)',
-        data: [budgetTotal, budgetSpent, budgetRemaining],
-        backgroundColor: ['#3b82f6', '#ef4444', '#10b981'],
-        borderColor: ['#1d4ed8', '#dc2626', '#059669'],
-        borderWidth: 1
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: {
-            callback: function(value) {
-              return '₹' + value.toLocaleString();
-            }
-          }
-        }
-      }
-    }
-  });
-
-  // Trends Chart - Show monthly spending if available
-  const trendsCtx = document.getElementById('trendsChart').getContext('2d');
-  charts.trends = new Chart(trendsCtx, {
-    type: 'line',
-    data: {
-      labels: ['Current Month'],
-      datasets: [{
-        label: 'Spent This Month',
-        data: [budgetSpent],
-        borderColor: '#3b82f6',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        tension: 0.4
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          beginAtZero: true,
-          ticks: {
-            callback: function(value) {
-              return '₹' + value.toLocaleString();
-            }
-          }
-        }
-      }
-    }
-  });
-
-  // Vendor Chart - Show basic info
-  const vendorCtx = document.getElementById('vendorChart').getContext('2d');
-  charts.vendor = new Chart(vendorCtx, {
-    type: 'pie',
-    data: {
-      labels: ['Spent', 'Remaining'],
-      datasets: [{
-        data: [budgetSpent, budgetRemaining],
-        backgroundColor: ['#ef4444', '#10b981']
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'bottom'
-        }
-      }
-    }
-  });
-}
-
-async function loadAnomalies() {
-  try {
-    const response = await fetch(`/api/anomalies/<%= budget._id %>`);
-    const data = await response.json();
-    
-    const anomalyList = document.getElementById('anomalyList');
-    const anomalyCount = document.getElementById('anomalyCount');
-    
-    anomalyCount.textContent = data.anomalies.length;
-    
-    if (data.anomalies.length === 0) {
-      anomalyList.innerHTML = '<p class="no-data">No anomalies detected. Great job! 🎉</p>';
-      return;
-    }
-    
-    anomalyList.innerHTML = data.anomalies.map(anomaly => `
+      anomalyList.innerHTML = data.anomalies
+        .map(
+          (anomaly) => `
       <div class="anomaly-item ${anomaly.severity}">
         <h4>${anomaly.title}</h4>
         <p>${anomaly.description}</p>
         <div class="anomaly-meta">
           <span class="severity-badge">${anomaly.severity.toUpperCase()}</span>
-          <span class="anomaly-date">${new Date(anomaly.detectedAt).toLocaleDateString()}</span>
+          <span class="anomaly-date">${new Date(
+            anomaly.detectedAt
+          ).toLocaleDateString()}</span>
         </div>
-        <button onclick="resolveAnomaly('${anomaly._id}')" class="btn-small btn-primary">Resolve</button>
+        <button onclick="resolveAnomaly('${
+          anomaly._id
+        }')" class="btn-small btn-primary">Resolve</button>
       </div>
-    `).join('');
-  } catch (error) {
-    console.error('Error loading anomalies:', error);
-  }
-}
-
-async function loadFeedback() {
-  try {
-    const response = await fetch(`/api/feedback/<%= budget._id %>`);
-    const data = await response.json();
-    
-    const feedbackList = document.getElementById('feedbackList');
-    
-    if (data.feedback.length === 0) {
-      feedbackList.innerHTML = '<p class="no-data">No feedback yet. Be the first to share your thoughts!</p>';
-      return;
+    `
+        )
+        .join("");
+    } catch (error) {
+      console.error("Error loading anomalies:", error);
     }
-    
-    feedbackList.innerHTML = data.feedback.map(feedback => `
+  }
+
+  async function loadFeedback() {
+    try {
+      const response = await fetch(`/api/feedback/<%= budget._id %>`);
+      const data = await response.json();
+
+      const feedbackList = document.getElementById("feedbackList");
+
+      if (data.feedback.length === 0) {
+        feedbackList.innerHTML =
+          '<p class="no-data">No feedback yet. Be the first to share your thoughts!</p>';
+        return;
+      }
+
+      feedbackList.innerHTML = data.feedback
+        .map(
+          (feedback) => `
       <div class="feedback-item">
         <div class="feedback-header">
           <h4>${feedback.title}</h4>
@@ -1069,361 +1188,389 @@ async function loadFeedback() {
         </div>
         <p>${feedback.message}</p>
         <div class="feedback-meta">
-          <span class="feedback-author">${feedback.userId ? feedback.userId.name : 'Anonymous'}</span>
-          <span class="feedback-date">${new Date(feedback.createdAt).toLocaleDateString()}</span>
+          <span class="feedback-author">${
+            feedback.userId ? feedback.userId.name : "Anonymous"
+          }</span>
+          <span class="feedback-date">${new Date(
+            feedback.createdAt
+          ).toLocaleDateString()}</span>
         </div>
-        ${feedback.adminResponse ? `
+        ${
+          feedback.adminResponse
+            ? `
           <div class="admin-response">
             <strong>Admin Response:</strong>
             <p>${feedback.adminResponse.message}</p>
           </div>
-        ` : ''}
+        `
+            : ""
+        }
       </div>
-    `).join('');
-  } catch (error) {
-    console.error('Error loading feedback:', error);
+    `
+        )
+        .join("");
+    } catch (error) {
+      console.error("Error loading feedback:", error);
+    }
   }
-}
 
-async function loadHierarchy() {
-  // This would load the project hierarchy from the budget data
-  const hierarchyTree = document.getElementById('hierarchyTree');
-  hierarchyTree.innerHTML = '<p>Project hierarchy will be displayed here based on budget departments and vendors.</p>';
-}
-
-async function loadAIData() {
-  const budgetId = '<%= budget._id %>';
-  
-  try {
-    // Load AI Summary
-    const summaryResponse = await fetch(`/api/budget/${budgetId}/summary`);
-    const summaryData = await summaryResponse.json();
-    displayAISummary(summaryData);
-    
-    // Load AI FAQ
-    const faqResponse = await fetch(`/api/budget/${budgetId}/faq`);
-    const faqData = await faqResponse.json();
-    displayAIFAQ(faqData);
-    
-    // Load Sankey Data
-    const sankeyResponse = await fetch(`/api/budget/${budgetId}/sankey`);
-    const sankeyData = await sankeyResponse.json();
-    displaySankeyDiagram(sankeyData);
-    
-  } catch (error) {
-    console.error('Error loading AI data:', error);
-    displayAIError();
+  async function loadHierarchy() {
+    const hierarchyTree = document.getElementById("hierarchyTree");
+    hierarchyTree.innerHTML =
+      "<p>Project hierarchy will be displayed here based on budget departments and vendors.</p>";
   }
-}
 
-function displayAISummary(summary) {
-  const summaryContainer = document.getElementById('aiSummary');
-  
-  if (summary && summary.headline) {
-    summaryContainer.innerHTML = `
+  async function loadAIData() {
+    const budgetId = "<%= budget._id %>";
+
+    try {
+      const summaryResponse = await fetch(`/api/budget/${budgetId}/summary`);
+      const summaryData = await summaryResponse.json();
+      displayAISummary(summaryData);
+
+      const faqResponse = await fetch(`/api/budget/${budgetId}/faq`);
+      const faqData = await faqResponse.json();
+      displayAIFAQ(faqData);
+
+      const sankeyResponse = await fetch(`/api/budget/${budgetId}/sankey`);
+      const sankeyData = await sankeyResponse.json();
+      displaySankeyDiagram(sankeyData);
+    } catch (error) {
+      console.error("Error loading AI data:", error);
+      displayAIError();
+    }
+  }
+
+  function displayAISummary(summary) {
+    const summaryContainer = document.getElementById("aiSummary");
+
+    if (summary && summary.headline) {
+      summaryContainer.innerHTML = `
       <div class="summary-content">
         <h5>${summary.headline}</h5>
         <ul class="summary-bullets">
-          ${summary.bullets ? summary.bullets.map(bullet => `<li>${bullet}</li>`).join('') : ''}
+          ${
+            summary.bullets
+              ? summary.bullets.map((bullet) => `<li>${bullet}</li>`).join("")
+              : ""
+          }
         </ul>
         <div class="summary-numbers">
           <div class="number-item">
             <span class="number-label">Total</span>
-            <span class="number-value">${summary.numbers?.total || 'N/A'}</span>
+            <span class="number-value">${summary.numbers?.total || "N/A"}</span>
           </div>
           <div class="number-item">
             <span class="number-label">Spent</span>
-            <span class="number-value">${summary.numbers?.spent || 'N/A'}</span>
+            <span class="number-value">${summary.numbers?.spent || "N/A"}</span>
           </div>
           <div class="number-item">
             <span class="number-label">Remaining</span>
-            <span class="number-value">${summary.numbers?.remaining || 'N/A'}</span>
+            <span class="number-value">${
+              summary.numbers?.remaining || "N/A"
+            }</span>
           </div>
         </div>
       </div>
     `;
-  } else {
-    summaryContainer.innerHTML = '<p>Unable to generate AI summary at this time.</p>';
+    } else {
+      summaryContainer.innerHTML =
+        "<p>Unable to generate AI summary at this time.</p>";
+    }
   }
-}
 
-function displayAIFAQ(faq) {
-  const faqContainer = document.getElementById('aiFAQ');
-  
-  if (faq && Array.isArray(faq) && faq.length > 0) {
-    faqContainer.innerHTML = faq.map(item => `
+  function displayAIFAQ(faq) {
+    const faqContainer = document.getElementById("aiFAQ");
+
+    if (faq && Array.isArray(faq) && faq.length > 0) {
+      faqContainer.innerHTML = faq
+        .map(
+          (item) => `
       <div class="faq-item">
         <h5>${item.q}</h5>
         <p>${item.a}</p>
       </div>
-    `).join('');
-  } else {
-    faqContainer.innerHTML = '<p>Unable to generate FAQ at this time.</p>';
-  }
-}
-
-function displaySankeyDiagram(data) {
-  const svg = d3.select("#sankeyDiagram");
-  const container = document.getElementById('sankeyContainer');
-  const width = container.clientWidth;
-  const height = 400;
-
-  // Clear previous content
-  svg.selectAll("*").remove();
-  svg.attr("width", width).attr("height", height);
-
-  if (!data || !data.nodes || data.nodes.length === 0) {
-    svg.append("text")
-      .attr("x", width / 2)
-      .attr("y", height / 2)
-      .attr("text-anchor", "middle")
-      .style("font-size", "16px")
-      .style("fill", "#64748b")
-      .text("No fund flow data available");
-    return;
-  }
-
-  const sankey = d3.sankey()
-    .nodeId(d => d.id)
-    .nodeWidth(15)
-    .nodePadding(10)
-    .extent([[1, 1], [width - 1, height - 5]]);
-
-  const { nodes, links } = sankey(data);
-
-  // Render links
-  svg.append("g")
-    .selectAll("path")
-    .data(links)
-    .join("path")
-    .attr("d", d3.sankeyLinkHorizontal())
-    .attr("fill", "none")
-    .attr("stroke", "#999")
-    .attr("stroke-opacity", 0.5)
-    .attr("stroke-width", d => Math.max(1, d.width));
-
-  // Render nodes
-  svg.append("g")
-    .selectAll("rect")
-    .data(nodes)
-    .join("rect")
-    .attr("x", d => d.x0)
-    .attr("y", d => d.y0)
-    .attr("height", d => d.y1 - d.y0)
-    .attr("width", d => d.x1 - d.x0)
-    .attr("fill", d => {
-      const colors = {
-        'budget': '#2563eb',
-        'department': '#10b981',
-        'project': '#f59e0b',
-        'vendor': '#ef4444',
-        'transaction': '#8b5cf6'
-      };
-      return colors[d.type] || '#64748b';
-    });
-
-  // Render labels
-  svg.append("g")
-    .selectAll("text")
-    .data(nodes)
-    .join("text")
-    .attr("x", d => d.x0 < width / 2 ? d.x1 + 6 : d.x0 - 6)
-    .attr("y", d => (d.y1 + d.y0) / 2)
-    .attr("dy", "0.35em")
-    .attr("text-anchor", d => d.x0 < width / 2 ? "start" : "end")
-    .text(d => d.name)
-    .style("font-size", "12px")
-    .style("fill", "#374151");
-}
-
-function displayAIError() {
-  document.getElementById('aiSummary').innerHTML = '<p>Error loading AI data. Please try again later.</p>';
-  document.getElementById('aiFAQ').innerHTML = '<p>Error loading FAQ. Please try again later.</p>';
-  document.getElementById('sankeyContainer').innerHTML = '<p>Error loading fund flow visualization. Please try again later.</p>';
-}
-
-async function submitFeedback() {
-  const message = document.getElementById('feedbackMessage').value;
-  const type = document.getElementById('feedbackType').value;
-  
-  if (!message.trim()) {
-    alert('Please enter your feedback message.');
-    return;
-  }
-  
-  try {
-    const response = await fetch('/api/feedback', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        budgetId: '<%= budget._id %>',
-        type: type,
-        title: message.substring(0, 50) + (message.length > 50 ? '...' : ''),
-        message: message,
-        category: 'other'
-      })
-    });
-    
-    if (response.ok) {
-      alert('Feedback submitted successfully!');
-      document.getElementById('feedbackMessage').value = '';
-      loadFeedback();
+    `
+        )
+        .join("");
     } else {
-      alert('Failed to submit feedback. Please try again.');
+      faqContainer.innerHTML = "<p>Unable to generate FAQ at this time.</p>";
     }
-  } catch (error) {
-    console.error('Error submitting feedback:', error);
-    alert('Error submitting feedback. Please try again.');
   }
-}
 
-async function resolveAnomaly(anomalyId) {
-  const resolution = prompt('Please provide a resolution for this anomaly:');
-  if (!resolution) return;
-  
-  try {
-    const response = await fetch(`/api/anomalies/${anomalyId}/resolve`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ resolution })
-    });
-    
-    if (response.ok) {
-      alert('Anomaly resolved successfully!');
-      loadAnomalies();
+  function displaySankeyDiagram(data) {
+    const svg = d3.select("#sankeyDiagram");
+    const container = document.getElementById("sankeyContainer");
+    const width = container.clientWidth;
+    const height = 400;
+
+    svg.selectAll("*").remove();
+    svg.attr("width", width).attr("height", height);
+
+    if (!data || !data.nodes || data.nodes.length === 0) {
+      svg
+        .append("text")
+        .attr("x", width / 2)
+        .attr("y", height / 2)
+        .attr("text-anchor", "middle")
+        .style("font-size", "16px")
+        .style("fill", "#64748b")
+        .text("No fund flow data available");
+      return;
+    }
+
+    const sankey = d3
+      .sankey()
+      .nodeId((d) => d.id)
+      .nodeWidth(15)
+      .nodePadding(10)
+      .extent([
+        [1, 1],
+        [width - 1, height - 5],
+      ]);
+
+    const { nodes, links } = sankey(data);
+
+    svg
+      .append("g")
+      .selectAll("path")
+      .data(links)
+      .join("path")
+      .attr("d", d3.sankeyLinkHorizontal())
+      .attr("fill", "none")
+      .attr("stroke", "#999")
+      .attr("stroke-opacity", 0.5)
+      .attr("stroke-width", (d) => Math.max(1, d.width));
+
+    svg
+      .append("g")
+      .selectAll("rect")
+      .data(nodes)
+      .join("rect")
+      .attr("x", (d) => d.x0)
+      .attr("y", (d) => d.y0)
+      .attr("height", (d) => d.y1 - d.y0)
+      .attr("width", (d) => d.x1 - d.x0)
+      .attr("fill", (d) => {
+        const colors = {
+          budget: "#2563eb",
+          department: "#10b981",
+          project: "#f59e0b",
+          vendor: "#ef4444",
+          transaction: "#8b5cf6",
+        };
+        return colors[d.type] || "#64748b";
+      });
+
+    svg
+      .append("g")
+      .selectAll("text")
+      .data(nodes)
+      .join("text")
+      .attr("x", (d) => (d.x0 < width / 2 ? d.x1 + 6 : d.x0 - 6))
+      .attr("y", (d) => (d.y1 + d.y0) / 2)
+      .attr("dy", "0.35em")
+      .attr("text-anchor", (d) => (d.x0 < width / 2 ? "start" : "end"))
+      .text((d) => d.name)
+      .style("font-size", "12px")
+      .style("fill", "#374151");
+  }
+
+  function displayAIError() {
+    document.getElementById("aiSummary").innerHTML =
+      "<p>Error loading AI data. Please try again later.</p>";
+    document.getElementById("aiFAQ").innerHTML =
+      "<p>Error loading FAQ. Please try again later.</p>";
+    document.getElementById("sankeyContainer").innerHTML =
+      "<p>Error loading fund flow visualization. Please try again later.</p>";
+  }
+
+  async function submitFeedback() {
+    const message = document.getElementById("feedbackMessage").value;
+    const type = document.getElementById("feedbackType").value;
+
+    if (!message.trim()) {
+      alert("Please enter your feedback message.");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/feedback", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          budgetId: "<%= budget._id %>",
+          type: type,
+          title: message.substring(0, 50) + (message.length > 50 ? "..." : ""),
+          message: message,
+          category: "other",
+        }),
+      });
+
+      if (response.ok) {
+        alert("Feedback submitted successfully!");
+        document.getElementById("feedbackMessage").value = "";
+        loadFeedback();
+      } else {
+        alert("Failed to submit feedback. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+      alert("Error submitting feedback. Please try again.");
+    }
+  }
+
+  async function resolveAnomaly(anomalyId) {
+    const resolution = prompt("Please provide a resolution for this anomaly:");
+    if (!resolution) return;
+
+    try {
+      const response = await fetch(`/api/anomalies/${anomalyId}/resolve`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ resolution }),
+      });
+
+      if (response.ok) {
+        alert("Anomaly resolved successfully!");
+        loadAnomalies();
+      } else {
+        alert("Failed to resolve anomaly. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error resolving anomaly:", error);
+      alert("Error resolving anomaly. Please try again.");
+    }
+  }
+
+  function addDepartment() {
+    const name = prompt("Enter department name:");
+    const budget = prompt("Enter allocated budget:");
+
+    if (!name || !budget) return;
+
+    console.log("Adding department:", name, budget);
+  }
+
+  function refreshData() {
+    loadAnomalies();
+    loadFeedback();
+    loadHierarchy();
+  }
+
+  function exportData() {
+    const budgetId = "<%= budget._id %>";
+    const budgetName = "<%= budget.name %>";
+
+    const link = document.createElement("a");
+    link.href = `/api/budget/${budgetId}/export/pdf`;
+    link.download = `budget-report-${budgetName.replace(
+      /[^a-zA-Z0-9]/g,
+      "-"
+    )}-${new Date().toISOString().split("T")[0]}.pdf`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    console.log("Exporting PDF report...");
+  }
+
+  function toggleChatbot() {
+    const chatbotWindow = document.getElementById("chatbotWindow");
+    const chatbotBtn = document.getElementById("chatbotToggle");
+
+    if (chatbotWindow.style.display === "none") {
+      chatbotWindow.style.display = "block";
+      chatbotBtn.innerHTML =
+        '<span class="chatbot-icon">🤖</span><span class="chatbot-text">Close Assistant</span>';
+      document.getElementById("chatbotInput").focus();
     } else {
-      alert('Failed to resolve anomaly. Please try again.');
+      chatbotWindow.style.display = "none";
+      chatbotBtn.innerHTML =
+        '<span class="chatbot-icon">🤖</span><span class="chatbot-text">Ask AI Assistant</span>';
     }
-  } catch (error) {
-    console.error('Error resolving anomaly:', error);
-    alert('Error resolving anomaly. Please try again.');
   }
-}
 
-function addDepartment() {
-  const name = prompt('Enter department name:');
-  const budget = prompt('Enter allocated budget:');
-  
-  if (!name || !budget) return;
-  
-  // This would call the API to add a department
-  console.log('Adding department:', name, budget);
-}
-
-function refreshData() {
-  loadAnomalies();
-  loadFeedback();
-  loadHierarchy();
-}
-
-function exportData() {
-  const budgetId = '<%= budget._id %>';
-  const budgetName = '<%= budget.name %>';
-  
-  // Create download link for PDF
-  const link = document.createElement('a');
-  link.href = `/api/budget/${budgetId}/export/pdf`;
-  link.download = `budget-report-${budgetName.replace(/[^a-zA-Z0-9]/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
-  
-  // Trigger download
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  
-  console.log('Exporting PDF report...');
-}
-
-// Chatbot Functions
-function toggleChatbot() {
-  const chatbotWindow = document.getElementById('chatbotWindow');
-  const chatbotBtn = document.getElementById('chatbotToggle');
-  
-  if (chatbotWindow.style.display === 'none') {
-    chatbotWindow.style.display = 'block';
-    chatbotBtn.innerHTML = '<span class="chatbot-icon">🤖</span><span class="chatbot-text">Close Assistant</span>';
-    document.getElementById('chatbotInput').focus();
-  } else {
-    chatbotWindow.style.display = 'none';
-    chatbotBtn.innerHTML = '<span class="chatbot-icon">🤖</span><span class="chatbot-text">Ask AI Assistant</span>';
-  }
-}
-
-function handleChatbotKeyPress(event) {
-  if (event.key === 'Enter') {
-    sendChatbotMessage();
-  }
-}
-
-async function sendChatbotMessage() {
-  const input = document.getElementById('chatbotInput');
-  const message = input.value.trim();
-  
-  if (!message) return;
-  
-  // Add user message to chat
-  addMessageToChat(message, 'user');
-  input.value = '';
-  
-  // Disable input while processing
-  const sendBtn = document.querySelector('.chatbot-send');
-  sendBtn.disabled = true;
-  sendBtn.textContent = 'Thinking...';
-  
-  try {
-    // Send message to AI service
-    const response = await fetch('/api/chatbot/ask', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        message: message,
-        budgetId: '<%= budget._id %>',
-        context: {
-          budgetName: window.budgetData.name,
-          department: window.budgetData.department,
-          totalBudget: budgetTotal,
-          spent: budgetSpent,
-          remaining: budgetRemaining,
-          status: window.budgetData.status
-        }
-      })
-    });
-    
-    const data = await response.json();
-    
-    if (data.success) {
-      addMessageToChat(data.response, 'bot');
-    } else {
-      addMessageToChat('Sorry, I encountered an error. Please try again.', 'bot');
+  function handleChatbotKeyPress(event) {
+    if (event.key === "Enter") {
+      sendChatbotMessage();
     }
-  } catch (error) {
-    console.error('Chatbot error:', error);
-    addMessageToChat('Sorry, I\'m having trouble connecting. Please try again later.', 'bot');
-  } finally {
-    sendBtn.disabled = false;
-    sendBtn.textContent = 'Send';
   }
-}
 
-function addMessageToChat(message, sender) {
-  const messagesContainer = document.getElementById('chatbotMessages');
-  const messageDiv = document.createElement('div');
-  messageDiv.className = `chatbot-message ${sender}-message`;
-  
-  messageDiv.innerHTML = `
+  async function sendChatbotMessage() {
+    const input = document.getElementById("chatbotInput");
+    const message = input.value.trim();
+
+    if (!message) return;
+
+    addMessageToChat(message, "user");
+    input.value = "";
+
+    const sendBtn = document.querySelector(".chatbot-send");
+    sendBtn.disabled = true;
+    sendBtn.textContent = "Thinking...";
+
+    try {
+      const response = await fetch("/api/chatbot/ask", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: message,
+          budgetId: "<%= budget._id %>",
+          context: {
+            budgetName: window.budgetData.name,
+            department: window.budgetData.department,
+            totalBudget: budgetTotal,
+            spent: budgetSpent,
+            remaining: budgetRemaining,
+            status: window.budgetData.status,
+          },
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        addMessageToChat(data.response, "bot");
+      } else {
+        addMessageToChat(
+          "Sorry, I encountered an error. Please try again.",
+          "bot"
+        );
+      }
+    } catch (error) {
+      console.error("Chatbot error:", error);
+      addMessageToChat(
+        "Sorry, I'm having trouble connecting. Please try again later.",
+        "bot"
+      );
+    } finally {
+      sendBtn.disabled = false;
+      sendBtn.textContent = "Send";
+    }
+  }
+
+  function addMessageToChat(message, sender) {
+    const messagesContainer = document.getElementById("chatbotMessages");
+    const messageDiv = document.createElement("div");
+    messageDiv.className = `chatbot-message ${sender}-message`;
+
+    messageDiv.innerHTML = `
     <div class="message-content">
       <p>${message}</p>
     </div>
   `;
-  
-  messagesContainer.appendChild(messageDiv);
-  messagesContainer.scrollTop = messagesContainer.scrollHeight;
-}
+
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  }
 </script>
 
 <%- include('partials/footer') %>

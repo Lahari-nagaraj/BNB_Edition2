@@ -1,13 +1,12 @@
-const crypto = require('crypto');
+const crypto = require("crypto");
 
 class BlockchainService {
   constructor() {
     this.chain = [];
     this.pendingTransactions = [];
-    this.difficulty = 2; // Simple proof of work
+    this.difficulty = 2;
     this.miningReward = 100;
-    
-    // Create genesis block
+
     this.createGenesisBlock();
   }
 
@@ -16,19 +15,21 @@ class BlockchainService {
       index: 0,
       timestamp: Date.now(),
       transactions: [],
-      previousHash: '0',
+      previousHash: "0",
       nonce: 0,
-      hash: this.calculateHash(0, Date.now(), [], '0', 0)
+      hash: this.calculateHash(0, Date.now(), [], "0", 0),
     };
-    
+
     this.chain.push(genesisBlock);
   }
 
   calculateHash(index, timestamp, transactions, previousHash, nonce) {
     return crypto
-      .createHash('sha256')
-      .update(index + timestamp + JSON.stringify(transactions) + previousHash + nonce)
-      .digest('hex');
+      .createHash("sha256")
+      .update(
+        index + timestamp + JSON.stringify(transactions) + previousHash + nonce
+      )
+      .digest("hex");
   }
 
   getLatestBlock() {
@@ -40,7 +41,7 @@ class BlockchainService {
       id: crypto.randomUUID(),
       timestamp: Date.now(),
       data: transactionData,
-      signature: this.signTransaction(transactionData)
+      signature: this.signTransaction(transactionData),
     };
 
     this.pendingTransactions.push(transaction);
@@ -48,11 +49,10 @@ class BlockchainService {
   }
 
   signTransaction(data) {
-    // Simple signature simulation
     return crypto
-      .createHash('sha256')
+      .createHash("sha256")
       .update(JSON.stringify(data) + Date.now())
-      .digest('hex')
+      .digest("hex")
       .substring(0, 16);
   }
 
@@ -61,7 +61,7 @@ class BlockchainService {
       from: null,
       to: miningRewardAddress,
       amount: this.miningReward,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     this.pendingTransactions.push(rewardTransaction);
@@ -71,7 +71,7 @@ class BlockchainService {
       timestamp: Date.now(),
       transactions: this.pendingTransactions,
       previousHash: this.getLatestBlock().hash,
-      nonce: 0
+      nonce: 0,
     };
 
     block.hash = this.mineBlock(block);
@@ -90,7 +90,7 @@ class BlockchainService {
       block.nonce
     );
 
-    const target = Array(this.difficulty + 1).join('0');
+    const target = Array(this.difficulty + 1).join("0");
 
     while (hash.substring(0, this.difficulty) !== target) {
       block.nonce++;
@@ -148,42 +148,43 @@ class BlockchainService {
     return true;
   }
 
-  // Store transaction in blockchain
   async storeTransaction(transactionData) {
     try {
       const transactionId = this.createTransaction({
-        type: 'budget_transaction',
+        type: "budget_transaction",
         budgetId: transactionData.budgetId,
         description: transactionData.description,
         amount: transactionData.amount,
         category: transactionData.category,
         status: transactionData.status,
         timestamp: transactionData.createdAt,
-        receiptHash: transactionData.receipt ? 
-          crypto.createHash('sha256').update(transactionData.receipt.url).digest('hex') : null,
-        transactionHash: transactionData.transactionHash
+        receiptHash: transactionData.receipt
+          ? crypto
+              .createHash("sha256")
+              .update(transactionData.receipt.url)
+              .digest("hex")
+          : null,
+        transactionHash: transactionData.transactionHash,
       });
 
-      // Mine the transaction (simulate blockchain confirmation)
-      const block = this.minePendingTransactions('system');
-      
+      const block = this.minePendingTransactions("system");
+
       return {
         success: true,
         transactionId,
         blockHash: block.hash,
         blockIndex: block.index,
-        confirmationTime: new Date().toISOString()
+        confirmationTime: new Date().toISOString(),
       };
     } catch (error) {
-      console.error('Error storing transaction in blockchain:', error);
+      console.error("Error storing transaction in blockchain:", error);
       return {
         success: false,
-        error: error.message
+        error: error.message,
       };
     }
   }
 
-  // Get transaction from blockchain
   getTransaction(transactionId) {
     for (const block of this.chain) {
       for (const transaction of block.transactions) {
@@ -192,7 +193,7 @@ class BlockchainService {
             ...transaction,
             blockHash: block.hash,
             blockIndex: block.index,
-            confirmed: true
+            confirmed: true,
           };
         }
       }
@@ -200,15 +201,17 @@ class BlockchainService {
     return null;
   }
 
-  // Get blockchain stats
   getStats() {
     return {
       totalBlocks: this.chain.length,
-      totalTransactions: this.chain.reduce((sum, block) => sum + block.transactions.length, 0),
+      totalTransactions: this.chain.reduce(
+        (sum, block) => sum + block.transactions.length,
+        0
+      ),
       pendingTransactions: this.pendingTransactions.length,
       isChainValid: this.isChainValid(),
       lastBlockHash: this.getLatestBlock().hash,
-      chainLength: this.chain.length
+      chainLength: this.chain.length,
     };
   }
 }
