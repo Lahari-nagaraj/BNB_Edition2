@@ -233,53 +233,7 @@
   </div>
 </div>
 
-<!-- Chart.js CDN with multiple fallbacks -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js" 
-        onerror="loadChartJSFallback1()"></script>
-<script>
-  function loadChartJSFallback1() {
-    console.log("Primary Chart.js CDN failed, trying fallback 1...");
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.min.js';
-    script.onerror = loadChartJSFallback2;
-    document.head.appendChild(script);
-  }
-  
-  function loadChartJSFallback2() {
-    console.log("Fallback 1 failed, trying fallback 2...");
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/chart.js@4.4.0/dist/chart.min.js';
-    script.onerror = loadChartJSFallback3;
-    document.head.appendChild(script);
-  }
-  
-  function loadChartJSFallback3() {
-    console.log("Fallback 2 failed, trying local Chart.js...");
-    const script = document.createElement('script');
-    script.src = '/node_modules/chart.js/dist/chart.min.js';
-    script.onerror = function() {
-      console.error("All Chart.js sources failed!");
-      showChartError();
-    };
-    document.head.appendChild(script);
-  }
-  
-  function showChartError() {
-    document.querySelectorAll('.chart-container').forEach(container => {
-      const canvas = container.querySelector('canvas');
-      if (canvas) {
-        canvas.style.display = 'none';
-        const errorDiv = document.createElement('div');
-        errorDiv.style.cssText = 'color: #ef4444; text-align: center; padding: 2rem; background: #fef2f2; border-radius: 8px;';
-        errorDiv.innerHTML = 'Chart.js failed to load. Please check your internet connection and try refreshing the page.';
-        container.appendChild(errorDiv);
-      }
-    });
-  }
-</script>
-<!-- D3.js for Sankey diagram -->
-<script src="https://d3js.org/d3.v7.min.js"></script>
-<script src="https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+<!-- Pure HTML/CSS Charts - No external dependencies -->
 <!-- Budget Data -->
 <script type="application/json" id="budget-data">
 {
@@ -310,6 +264,16 @@
   };
   
   console.log("Budget data loaded:", window.budgetData);
+  
+  // Initialize pure HTML/CSS charts immediately
+  document.addEventListener("DOMContentLoaded", function () {
+    console.log("DOM Content Loaded - Creating pure HTML/CSS charts...");
+    createPureHTMLCharts();
+    loadAnomalies();
+    loadFeedback();
+    loadHierarchy();
+    loadAIData();
+  });
 </script>
 
 <style>
@@ -950,62 +914,6 @@
 
   console.log("Budget Data:", { budgetSpent, budgetRemaining, budgetTotal });
 
-  // Wait for Chart.js to load
-  function waitForChartJS(callback, maxAttempts = 50) {
-    let attempts = 0;
-    const checkChart = () => {
-      attempts++;
-      console.log(`Checking for Chart.js... attempt ${attempts}`);
-      
-      if (typeof Chart !== 'undefined') {
-        console.log("Chart.js loaded successfully!");
-        callback();
-      } else if (attempts < maxAttempts) {
-        setTimeout(checkChart, 100);
-      } else {
-        console.error("Chart.js failed to load after maximum attempts");
-        showChartError();
-      }
-    };
-    checkChart();
-  }
-
-  document.addEventListener("DOMContentLoaded", function () {
-    console.log("DOM Content Loaded - Waiting for Chart.js...");
-    console.log("Canvas elements found:", document.querySelectorAll('canvas').length);
-    
-    waitForChartJS(() => {
-      console.log("Chart.js loaded successfully! Testing basic chart creation...");
-      
-      // Test basic chart creation
-      try {
-        const testCtx = document.createElement('canvas').getContext('2d');
-        const testChart = new Chart(testCtx, {
-          type: 'doughnut',
-          data: {
-            labels: ['Test'],
-            datasets: [{
-              data: [1],
-              backgroundColor: ['#3b82f6']
-            }]
-          }
-        });
-        console.log("Basic chart test successful!");
-        testChart.destroy(); // Clean up test chart
-        
-        console.log("Initializing charts with dummy data...");
-        initializeChartsWithDummyData();
-        loadAnomalies();
-        loadFeedback();
-        loadHierarchy();
-        loadAIData();
-      } catch (error) {
-        console.error("Chart test failed:", error);
-        showChartError();
-      }
-    });
-  });
-
   // Function to generate comprehensive dummy data
   function generateComprehensiveDummyData() {
     const currentYear = new Date().getFullYear();
@@ -1042,398 +950,9 @@
     };
   }
 
-  function initializeChartsWithDummyData() {
-    console.log("Initializing charts with comprehensive dummy data...");
-    
-    // Check if Chart.js is available
-    if (typeof Chart === 'undefined') {
-      console.error("Chart.js is not available!");
-      showChartError();
-      return;
-    }
-    
-    const dummyData = generateComprehensiveDummyData();
-    
-    // Hide all loading indicators
-    document.querySelectorAll(".chart-loading").forEach((loading) => {
-      loading.style.display = "none";
-    });
-
-    // Show all canvas elements
-    document.querySelectorAll(".chart-container canvas").forEach((canvas) => {
-      canvas.style.display = "block";
-    });
-
-    try {
-      // 1. Overview Chart (Pie Chart) - Budget Overview
-      const overviewCtx = document.getElementById("overviewChart").getContext("2d");
-      charts.overview = new Chart(overviewCtx, {
-        type: "pie",
-        data: {
-          labels: ["Spent", "Remaining"],
-          datasets: [{
-            data: [budgetSpent, budgetRemaining],
-            backgroundColor: ["#ef4444", "#10b981"],
-            borderWidth: 2,
-            borderColor: "#ffffff",
-          }],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { 
-              position: "bottom",
-              labels: {
-                padding: 20,
-                usePointStyle: true
-              }
-            },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  const value = context.parsed;
-                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                  const percentage = ((value / total) * 100).toFixed(1);
-                  return `${context.label}: ₹${value.toLocaleString()} (${percentage}%)`;
-                }
-              }
-            }
-          },
-        },
-      });
-      console.log("Overview chart created");
-
-      // 2. Category Chart (Bar Chart) - Transaction Categories
-      const categoryCtx = document.getElementById("categoryChart").getContext("2d");
-      charts.category = new Chart(categoryCtx, {
-        type: "bar",
-        data: {
-          labels: dummyData.categories.map(cat => cat.name),
-          datasets: [{
-            label: "Amount (₹)",
-            data: dummyData.categories.map(cat => cat.amount),
-            backgroundColor: ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"],
-            borderWidth: 1,
-            borderColor: "#ffffff",
-          }],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: {
-                callback: function (value) {
-                  return "₹" + value.toLocaleString();
-                },
-              },
-              grid: {
-                color: "rgba(0,0,0,0.1)"
-              }
-            },
-            x: {
-              grid: {
-                display: false
-              }
-            }
-          },
-          plugins: {
-            legend: {
-              display: false
-            },
-            tooltip: {
-              callbacks: {
-                label: function (context) {
-                  return `${context.label}: ₹${context.parsed.y.toLocaleString()}`;
-                },
-              },
-            },
-          },
-        },
-      });
-      console.log("Category chart created");
-
-      // 3. Timeline Chart (Line Chart) - Spending Timeline
-      const timelineCtx = document.getElementById("timelineChart").getContext("2d");
-      charts.timeline = new Chart(timelineCtx, {
-        type: "line",
-        data: {
-          labels: dummyData.timeline.map(t => t.month),
-          datasets: [{
-            label: "Monthly Spending",
-            data: dummyData.timeline.map(t => t.amount),
-            borderColor: "#3b82f6",
-            backgroundColor: "rgba(59, 130, 246, 0.1)",
-            tension: 0.4,
-            fill: true,
-            pointBackgroundColor: "#3b82f6",
-            pointBorderColor: "#ffffff",
-            pointBorderWidth: 2,
-            pointRadius: 6,
-          }],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: {
-                callback: function (value) {
-                  return "₹" + value.toLocaleString();
-                },
-              },
-              grid: {
-                color: "rgba(0,0,0,0.1)"
-              }
-            },
-            x: {
-              grid: {
-                display: false
-              }
-            }
-          },
-          plugins: {
-            legend: {
-              display: false
-            },
-            tooltip: {
-              callbacks: {
-                label: function (context) {
-                  return `${context.dataset.label}: ₹${context.parsed.y.toLocaleString()}`;
-                },
-              },
-            },
-          },
-        },
-      });
-      console.log("Timeline chart created");
-
-      // 4. Utilization Chart (Pie Chart) - Budget Utilization
-      const utilizationCtx = document.getElementById("utilizationChart").getContext("2d");
-      const utilizationPercentage = Math.round((budgetSpent / budgetTotal) * 100);
-      const remainingPercentage = 100 - utilizationPercentage;
-
-      charts.utilization = new Chart(utilizationCtx, {
-        type: "pie",
-        data: {
-          labels: ["Utilized", "Remaining"],
-          datasets: [{
-            data: [utilizationPercentage, remainingPercentage],
-            backgroundColor: [
-              utilizationPercentage > 80 ? "#ef4444" : utilizationPercentage > 60 ? "#f59e0b" : "#10b981",
-              "#e5e7eb",
-            ],
-            borderWidth: 2,
-            borderColor: "#ffffff",
-          }],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { 
-              position: "bottom",
-              labels: {
-                padding: 20,
-                usePointStyle: true
-              }
-            },
-            tooltip: {
-              callbacks: {
-                label: function (context) {
-                  const value = context.parsed;
-                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                  const percentage = ((value / total) * 100).toFixed(1);
-                  return `${context.label}: ${percentage}%`;
-                },
-              },
-            },
-          },
-        },
-      });
-      console.log("Utilization chart created");
-
-      // 5. Department Usage Chart (Bar Chart) - Department Budget Usage
-      const departmentUsageCtx = document.getElementById("departmentUsageChart").getContext("2d");
-      
-      charts.departmentUsage = new Chart(departmentUsageCtx, {
-        type: "bar",
-        data: {
-          labels: dummyData.departments.map(dept => dept.name),
-          datasets: [
-            {
-              label: "Budget Allocated (₹)",
-              data: dummyData.departments.map(dept => dept.allocated),
-              backgroundColor: "rgba(59, 130, 246, 0.6)",
-              borderColor: "#3b82f6",
-              borderWidth: 2,
-            },
-            {
-              label: "Amount Spent (₹)",
-              data: dummyData.departments.map(dept => dept.spent),
-              backgroundColor: "rgba(239, 68, 68, 0.6)",
-              borderColor: "#ef4444",
-              borderWidth: 2,
-            }
-          ],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            y: {
-              beginAtZero: true,
-              ticks: {
-                callback: function (value) {
-                  return "₹" + value.toLocaleString();
-                },
-              },
-              grid: {
-                color: "rgba(0,0,0,0.1)"
-              }
-            },
-            x: {
-              grid: {
-                display: false
-              }
-            }
-          },
-          plugins: {
-            legend: {
-              position: "top",
-              labels: {
-                usePointStyle: true,
-                padding: 20
-              }
-            },
-            tooltip: {
-              callbacks: {
-                label: function (context) {
-                  return `${context.dataset.label}: ₹${context.parsed.y.toLocaleString()}`;
-                },
-              },
-            },
-          },
-        },
-      });
-      console.log("Department usage chart created");
-
-      // 6. Department Comparison Chart (Pie Chart) - Department Comparison
-      const departmentComparisonCtx = document.getElementById("departmentComparisonChart").getContext("2d");
-      
-      charts.departmentComparison = new Chart(departmentComparisonCtx, {
-        type: "pie",
-        data: {
-          labels: dummyData.departments.map(dept => dept.name),
-          datasets: [{
-            data: dummyData.departments.map(dept => dept.spent),
-            backgroundColor: [
-              "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#f97316", "#84cc16"
-            ],
-            borderWidth: 2,
-            borderColor: "#ffffff",
-          }],
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: "bottom",
-              labels: {
-                padding: 20,
-                usePointStyle: true
-              }
-            },
-            tooltip: {
-              callbacks: {
-                label: function (context) {
-                  const value = context.parsed;
-                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                  const percentage = ((value / total) * 100).toFixed(1);
-                  return `${context.label}: ₹${value.toLocaleString()} (${percentage}%)`;
-                },
-              },
-            },
-          },
-        },
-      });
-      console.log("Department comparison chart created");
-
-      // 7. Department Utilization Chart (Horizontal Bar) - Department Utilization
-      const departmentUtilizationCtx = document.getElementById("departmentUtilizationChart").getContext("2d");
-      
-      charts.departmentUtilization = new Chart(departmentUtilizationCtx, {
-        type: "bar",
-        data: {
-          labels: dummyData.departments.map(dept => dept.name),
-          datasets: [{
-            label: "Budget Utilization (%)",
-            data: dummyData.departments.map(dept => dept.utilization),
-            backgroundColor: dummyData.departments.map(dept => {
-              const utilization = dept.utilization;
-              if (utilization > 80) return "#ef4444"; // Red for high utilization
-              if (utilization > 60) return "#f59e0b"; // Orange for medium utilization
-              return "#10b981"; // Green for low utilization
-            }),
-            borderWidth: 1,
-            borderColor: "#ffffff",
-          }],
-        },
-        options: {
-          indexAxis: 'y',
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            x: {
-              beginAtZero: true,
-              max: 100,
-              ticks: {
-                callback: function (value) {
-                  return value + "%";
-                },
-              },
-              grid: {
-                color: "rgba(0,0,0,0.1)"
-              }
-            },
-            y: {
-              grid: {
-                display: false
-              }
-            }
-          },
-          plugins: {
-            legend: {
-              display: false
-            },
-            tooltip: {
-              callbacks: {
-                label: function (context) {
-                  return `${context.label}: ${context.parsed.x.toFixed(1)}%`;
-                },
-              },
-            },
-          },
-        },
-      });
-      console.log("Department utilization chart created");
-
-      console.log("All charts initialized successfully with dummy data!");
-      
-    } catch (error) {
-      console.error("Error creating charts:", error);
-      console.log("Attempting to create simple HTML charts as fallback...");
-      createSimpleHTMLCharts();
-    }
-  }
-
-  // Fallback function to create simple HTML charts
-  function createSimpleHTMLCharts() {
-    console.log("Creating simple HTML charts as fallback...");
+  // Create pure HTML/CSS charts
+  function createPureHTMLCharts() {
+    console.log("Creating pure HTML/CSS charts...");
     
     const dummyData = generateComprehensiveDummyData();
     
@@ -1447,7 +966,7 @@
       canvas.style.display = "none";
     });
 
-    // Create simple HTML charts for each container
+    // Create charts for each container
     const chartContainers = document.querySelectorAll('.chart-container');
     
     chartContainers.forEach((container, index) => {
@@ -1455,41 +974,42 @@
       let chartHTML = '';
       
       switch(index) {
-        case 0: // Budget Overview
-          chartHTML = createSimplePieChart('Budget Overview', [
-            { label: 'Spent', value: budgetSpent, color: '#ef4444' },
-            { label: 'Remaining', value: budgetRemaining, color: '#10b981' }
+        case 0: // Budget Overview - Pie Chart
+          chartHTML = createHTMLPieChart([
+            { label: 'Spent', value: budgetSpent, color: '#ef4444', percentage: ((budgetSpent / budgetTotal) * 100).toFixed(1) },
+            { label: 'Remaining', value: budgetRemaining, color: '#10b981', percentage: ((budgetRemaining / budgetTotal) * 100).toFixed(1) }
           ]);
           break;
-        case 1: // Transaction Categories
-          chartHTML = createSimpleBarChart('Transaction Categories', dummyData.categories);
+        case 1: // Transaction Categories - Bar Chart
+          chartHTML = createHTMLBarChart(dummyData.categories);
           break;
-        case 2: // Spending Timeline
-          chartHTML = createSimpleLineChart('Spending Timeline', dummyData.timeline);
+        case 2: // Spending Timeline - Line Chart
+          chartHTML = createHTMLLineChart(dummyData.timeline);
           break;
-        case 3: // Budget Utilization
+        case 3: // Budget Utilization - Pie Chart
           const utilization = Math.round((budgetSpent / budgetTotal) * 100);
-          chartHTML = createSimplePieChart('Budget Utilization', [
-            { label: 'Utilized', value: utilization, color: '#f59e0b' },
-            { label: 'Remaining', value: 100 - utilization, color: '#e5e7eb' }
+          chartHTML = createHTMLPieChart([
+            { label: 'Utilized', value: utilization, color: utilization > 80 ? '#ef4444' : utilization > 60 ? '#f59e0b' : '#10b981', percentage: utilization },
+            { label: 'Remaining', value: 100 - utilization, color: '#e5e7eb', percentage: 100 - utilization }
           ]);
           break;
-        case 4: // Department Budget Usage
-          chartHTML = createSimpleBarChart('Department Budget Usage', dummyData.departments.map(dept => ({
+        case 4: // Department Budget Usage - Bar Chart
+          chartHTML = createHTMLBarChart(dummyData.departments.map(dept => ({
             name: dept.name,
             amount: dept.allocated,
             color: '#3b82f6'
           })));
           break;
-        case 5: // Department Comparison
-          chartHTML = createSimplePieChart('Department Comparison', dummyData.departments.map(dept => ({
+        case 5: // Department Comparison - Pie Chart
+          chartHTML = createHTMLPieChart(dummyData.departments.map(dept => ({
             label: dept.name,
             value: dept.spent,
-            color: '#3b82f6'
+            color: '#3b82f6',
+            percentage: ((dept.spent / budgetSpent) * 100).toFixed(1)
           })));
           break;
-        case 6: // Department Utilization
-          chartHTML = createSimpleBarChart('Department Utilization', dummyData.departments.map(dept => ({
+        case 6: // Department Utilization - Horizontal Bar Chart
+          chartHTML = createHTMLHorizontalBarChart(dummyData.departments.map(dept => ({
             name: dept.name,
             amount: dept.utilization,
             color: dept.utilization > 80 ? '#ef4444' : dept.utilization > 60 ? '#f59e0b' : '#10b981'
@@ -1502,20 +1022,23 @@
       container.innerHTML = `<h3>${title}</h3>${chartHTML}`;
     });
     
-    console.log("Simple HTML charts created successfully!");
+    console.log("Pure HTML/CSS charts created successfully!");
   }
 
-  function createSimplePieChart(title, data) {
+  // HTML/CSS Chart Creation Functions
+  function createHTMLPieChart(data) {
     const total = data.reduce((sum, item) => sum + item.value, 0);
-    let html = '<div style="display: flex; flex-wrap: wrap; gap: 1rem; padding: 1rem;">';
+    let html = '<div style="display: flex; flex-wrap: wrap; gap: 1.5rem; padding: 1.5rem; justify-content: center;">';
     
     data.forEach(item => {
-      const percentage = ((item.value / total) * 100).toFixed(1);
+      const percentage = item.percentage || ((item.value / total) * 100).toFixed(1);
       html += `
-        <div style="flex: 1; min-width: 120px; text-align: center;">
-          <div style="width: 60px; height: 60px; border-radius: 50%; background: ${item.color}; margin: 0 auto 0.5rem;"></div>
-          <div style="font-weight: bold;">${item.label}</div>
-          <div style="color: #64748b;">${percentage}%</div>
+        <div style="flex: 1; min-width: 120px; text-align: center; padding: 1rem;">
+          <div style="width: 80px; height: 80px; border-radius: 50%; background: ${item.color}; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 1.2rem; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+            ${percentage}%
+          </div>
+          <div style="font-weight: bold; font-size: 1.1rem; margin-bottom: 0.5rem;">${item.label}</div>
+          <div style="color: #64748b; font-size: 0.9rem;">₹${item.value.toLocaleString()}</div>
         </div>
       `;
     });
@@ -1524,20 +1047,22 @@
     return html;
   }
 
-  function createSimpleBarChart(title, data) {
+  function createHTMLBarChart(data) {
     const maxValue = Math.max(...data.map(item => item.amount));
-    let html = '<div style="padding: 1rem;">';
+    let html = '<div style="padding: 1.5rem;">';
     
     data.forEach(item => {
       const percentage = ((item.amount / maxValue) * 100).toFixed(1);
       html += `
-        <div style="margin-bottom: 1rem;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
-            <span style="font-weight: bold;">${item.name}</span>
-            <span style="color: #64748b;">₹${item.amount.toLocaleString()}</span>
+        <div style="margin-bottom: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+            <span style="font-weight: bold; font-size: 1rem;">${item.name}</span>
+            <span style="color: #64748b; font-weight: 600;">₹${item.amount.toLocaleString()}</span>
           </div>
-          <div style="width: 100%; height: 20px; background: #e5e7eb; border-radius: 10px; overflow: hidden;">
-            <div style="width: ${percentage}%; height: 100%; background: ${item.color}; transition: width 0.3s ease;"></div>
+          <div style="width: 100%; height: 25px; background: #e5e7eb; border-radius: 12px; overflow: hidden; position: relative;">
+            <div style="width: ${percentage}%; height: 100%; background: ${item.color}; transition: width 0.8s ease; border-radius: 12px; position: relative;">
+              <div style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: white; font-weight: bold; font-size: 0.8rem;">${percentage}%</div>
+            </div>
           </div>
         </div>
       `;
@@ -1547,27 +1072,65 @@
     return html;
   }
 
-  function createSimpleLineChart(title, data) {
+  function createHTMLHorizontalBarChart(data) {
+    let html = '<div style="padding: 1.5rem;">';
+    
+    data.forEach(item => {
+      html += `
+        <div style="margin-bottom: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+            <span style="font-weight: bold; font-size: 1rem;">${item.name}</span>
+            <span style="color: #64748b; font-weight: 600;">${item.amount}%</span>
+          </div>
+          <div style="width: 100%; height: 25px; background: #e5e7eb; border-radius: 12px; overflow: hidden; position: relative;">
+            <div style="width: ${item.amount}%; height: 100%; background: ${item.color}; transition: width 0.8s ease; border-radius: 12px; position: relative;">
+              <div style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: white; font-weight: bold; font-size: 0.8rem;">${item.amount}%</div>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    
+    html += '</div>';
+    return html;
+  }
+
+  function createHTMLLineChart(data) {
     const maxValue = Math.max(...data.map(item => item.amount));
-    let html = '<div style="padding: 1rem; position: relative;">';
+    let html = '<div style="padding: 1.5rem; position: relative;">';
     
     // Create SVG for line chart
-    html += '<svg width="100%" height="200" style="border: 1px solid #e5e7eb; border-radius: 8px;">';
+    html += '<svg width="100%" height="250" style="border: 1px solid #e5e7eb; border-radius: 8px; background: #fafafa;">';
     
+    // Add grid lines
+    for (let i = 0; i <= 4; i++) {
+      const y = (i / 4) * 100;
+      html += `<line x1="0" y1="${y}%" x2="100%" y2="${y}%" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="2,2" />`;
+    }
+    
+    // Create line path
+    let pathData = '';
     data.forEach((item, index) => {
       const x = (index / (data.length - 1)) * 100;
       const y = 100 - ((item.amount / maxValue) * 100);
       
       if (index === 0) {
-        html += `<path d="M ${x}% ${y}%" stroke="#3b82f6" stroke-width="3" fill="none" />`;
+        pathData = `M ${x}% ${y}%`;
       } else {
-        const prevX = ((index - 1) / (data.length - 1)) * 100;
-        const prevY = 100 - ((data[index - 1].amount / maxValue) * 100);
-        html += `<path d="M ${prevX}% ${prevY}% L ${x}% ${y}%" stroke="#3b82f6" stroke-width="3" fill="none" />`;
+        pathData += ` L ${x}% ${y}%`;
       }
+    });
+    
+    html += `<path d="${pathData}" stroke="#3b82f6" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round" />`;
+    
+    // Add data points and labels
+    data.forEach((item, index) => {
+      const x = (index / (data.length - 1)) * 100;
+      const y = 100 - ((item.amount / maxValue) * 100);
       
-      html += `<circle cx="${x}%" cy="${y}%" r="4" fill="#3b82f6" />`;
-      html += `<text x="${x}%" y="95%" text-anchor="middle" style="font-size: 12px; fill: #64748b;">${item.month}</text>`;
+      html += `<circle cx="${x}%" cy="${y}%" r="6" fill="#3b82f6" stroke="white" stroke-width="2" />`;
+      html += `<text x="${x}%" y="95%" text-anchor="middle" style="font-size: 12px; fill: #64748b; font-weight: 500;">${item.month}</text>`;
+      html += `<text x="${x}%" y="${y - 10}%" text-anchor="middle" style="font-size: 11px; fill: #3b82f6; font-weight: bold;">₹${item.amount.toLocaleString()}</text>`;
     });
     
     html += '</svg>';
@@ -1575,7 +1138,8 @@
     return html;
   }
 
-  async function initializeCharts() {
+  // Load other data functions
+  async function loadAnomalies() {
     try {
       let transactions = [];
       try {
