@@ -2,9 +2,11 @@ const QRCode = require('qrcode');
 
 class VisualizationService {
   
-    async generateQRCode(transactionHash) {
+ 
+  async generateQRCode(transactionHash) {
     try {
-      const verificationUrl = `${process.env.BASE_URL || 'http:      const qrCodeDataURL = await QRCode.toDataURL(verificationUrl, {
+      const verificationUrl = `${process.env.BASE_URL || 'http://localhost:8080'}/verify/${transactionHash}`;
+      const qrCodeDataURL = await QRCode.toDataURL(verificationUrl, {
         width: 200,
         margin: 2,
         color: {
@@ -19,7 +21,8 @@ class VisualizationService {
     }
   }
 
-    generateSpendingChart(budgetData) {
+ 
+  generateSpendingChart(budgetData) {
     const spent = budgetData.spent || 0;
     const remaining = budgetData.remaining || budgetData.totalBudget - spent;
     
@@ -30,7 +33,9 @@ class VisualizationService {
         datasets: [{
           data: [spent, remaining],
           backgroundColor: [
-            '#ef4444',             '#10b981'            ],
+            '#ef4444', 
+            '#10b981'  
+          ],
           borderWidth: 0,
           hoverOffset: 4
         }]
@@ -61,7 +66,8 @@ class VisualizationService {
     };
   }
 
-    generateDepartmentChart(departments) {
+  
+  generateDepartmentChart(departments) {
     return {
       type: 'bar',
       data: {
@@ -106,11 +112,12 @@ class VisualizationService {
     };
   }
 
-    generateSankeyData(hierarchyData) {
+  generateSankeyData(hierarchyData) {
     const nodes = [];
     const links = [];
 
-        nodes.push({
+    // Add budget node
+    nodes.push({
       id: 0,
       name: hierarchyData.name,
       type: 'budget',
@@ -119,7 +126,8 @@ class VisualizationService {
 
     let nodeIndex = 1;
 
-        if (hierarchyData.departments) {
+  
+    if (hierarchyData.departments) {
       hierarchyData.departments.forEach(dept => {
         nodes.push({
           id: nodeIndex,
@@ -137,7 +145,8 @@ class VisualizationService {
         const deptIndex = nodeIndex;
         nodeIndex++;
 
-                if (dept.projects) {
+   
+        if (dept.projects) {
           dept.projects.forEach(project => {
             nodes.push({
               id: nodeIndex,
@@ -155,7 +164,8 @@ class VisualizationService {
             const projectIndex = nodeIndex;
             nodeIndex++;
 
-                        if (project.vendors) {
+         
+            if (project.vendors) {
               project.vendors.forEach(vendor => {
                 nodes.push({
                   id: nodeIndex,
@@ -181,8 +191,8 @@ class VisualizationService {
     return { nodes, links };
   }
 
-    generateTimelineChart(transactions) {
-        const monthlyData = {};
+  generateTimelineChart(transactions) {
+    const monthlyData = {};
     transactions.forEach(tx => {
       const month = new Date(tx.createdAt).toISOString().substring(0, 7);
       monthlyData[month] = (monthlyData[month] || 0) + tx.amount;
@@ -231,7 +241,7 @@ class VisualizationService {
     };
   }
 
-    generateStatusChart(items) {
+  generateStatusChart(items) {
     const statusCounts = {};
     items.forEach(item => {
       statusCounts[item.status] = (statusCounts[item.status] || 0) + 1;
@@ -272,7 +282,7 @@ class VisualizationService {
     };
   }
 
-    generateComparisonChart(budgets) {
+  generateComparisonChart(budgets) {
     return {
       type: 'bar',
       data: {
