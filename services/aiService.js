@@ -8,6 +8,12 @@ class AIService {
 
   async generateBudgetSummary(budgetData, context = null) {
     try {
+      // Check if HF_TOKEN is available
+      if (!process.env.HF_TOKEN) {
+        console.log("HF_TOKEN not available, using fallback summary");
+        return this.getFallbackSummary(budgetData);
+      }
+
       let departmentsInfo = "";
       if (budgetData.departments && budgetData.departments.length > 0) {
         departmentsInfo =
@@ -126,15 +132,23 @@ Return ONLY valid JSON in this exact format:
   ]
 }`;
 
-      const response = await this.hf.textGeneration({
-        model: "microsoft/DialoGPT-medium",
-        inputs: prompt,
-        parameters: {
-          max_new_tokens: 400,
-          temperature: 0.2,
-          return_full_text: false,
-        },
-      });
+      const response = await Promise.race([
+        this.hf.textGeneration({
+          model: "microsoft/DialoGPT-medium",
+          inputs: prompt,
+          parameters: {
+            max_new_tokens: 400,
+            temperature: 0.2,
+            return_full_text: false,
+          },
+        }),
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error("AI summary generation timeout")),
+            15000
+          )
+        ),
+      ]);
 
       const result = this.parseJSONResponse(response.generated_text);
       return result || this.getFallbackSummary(budgetData);
@@ -200,6 +214,12 @@ Return JSON array:
 
   async generateFAQ(budgetData, context = null) {
     try {
+      // Check if HF_TOKEN is available
+      if (!process.env.HF_TOKEN) {
+        console.log("HF_TOKEN not available, using fallback FAQ");
+        return this.getFallbackFAQ(budgetData);
+      }
+
       let departmentsInfo = "";
       if (budgetData.departments && budgetData.departments.length > 0) {
         departmentsInfo =
@@ -271,15 +291,23 @@ Create questions that citizens typically ask about government budgets:
 Return ONLY valid JSON array:
 [{"q": "Short question?", "a": "Clear, simple answer."}, ...]`;
 
-      const response = await this.hf.textGeneration({
-        model: "microsoft/DialoGPT-medium",
-        inputs: prompt,
-        parameters: {
-          max_new_tokens: 500,
-          temperature: 0.3,
-          return_full_text: false,
-        },
-      });
+      const response = await Promise.race([
+        this.hf.textGeneration({
+          model: "microsoft/DialoGPT-medium",
+          inputs: prompt,
+          parameters: {
+            max_new_tokens: 500,
+            temperature: 0.3,
+            return_full_text: false,
+          },
+        }),
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error("AI FAQ generation timeout")),
+            15000
+          )
+        ),
+      ]);
 
       const result = this.parseJSONResponse(response.generated_text);
       return result || this.getFallbackFAQ(budgetData);
@@ -404,6 +432,12 @@ Return ONLY valid JSON array:
 
   async generateChatbotResponse(userMessage, context) {
     try {
+      // Check if HF_TOKEN is available
+      if (!process.env.HF_TOKEN) {
+        console.log("HF_TOKEN not available, using fallback chatbot response");
+        return this.getFallbackChatbotResponse(userMessage, context);
+      }
+
       const prompt = `You are a friendly BudgetTransparency Assistant. Answer the user's question about budget transparency in 3 short bullets. If they ask for verification, include the endpoint /verify/<hash>.
 
 User Question: ${userMessage}
@@ -411,20 +445,28 @@ Context: ${JSON.stringify(context)}
 
 Provide 3 short bullets for lay users, and 1 technical line for auditors if requested.`;
 
-      const response = await this.hf.textGeneration({
-        model: "microsoft/DialoGPT-medium",
-        inputs: prompt,
-        parameters: {
-          max_new_tokens: 200,
-          temperature: 0.5,
-          return_full_text: false,
-        },
-      });
+      const response = await Promise.race([
+        this.hf.textGeneration({
+          model: "microsoft/DialoGPT-medium",
+          inputs: prompt,
+          parameters: {
+            max_new_tokens: 200,
+            temperature: 0.5,
+            return_full_text: false,
+          },
+        }),
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error("AI chatbot response timeout")),
+            10000
+          )
+        ),
+      ]);
 
       return response.generated_text;
     } catch (error) {
       console.error("Error generating chatbot response:", error);
-      return "I'm sorry, I'm having trouble processing your request right now. Please try again later or contact support.";
+      return this.getFallbackChatbotResponse(userMessage, context);
     }
   }
 
@@ -615,6 +657,33 @@ Return JSON:
         description: "Receipt uploaded",
       },
     };
+  }
+
+  getFallbackChatbotResponse(userMessage, context) {
+    const budgetData = context || {};
+    const lowerMessage = userMessage.toLowerCase();
+    
+    if (lowerMessage.includes("budget") || lowerMessage.includes("money")) {
+      return `• This budget is for ${budgetData.budgetName || "government operations"}
+• Total allocated: ₹${budgetData.totalBudget?.toLocaleString() || "N/A"}
+• Amount spent: ₹${budgetData.spent?.toLocaleString() || "N/A"} (${budgetData.spent && budgetData.totalBudget ? ((budgetData.spent / budgetData.totalBudget) * 100).toFixed(1) : "N/A"}%)`;
+    }
+    
+    if (lowerMessage.includes("verify") || lowerMessage.includes("check")) {
+      return `• All transactions have unique verification hashes
+• Use /verify/<hash> endpoint to verify any transaction
+• Blockchain records ensure data integrity and transparency`;
+    }
+    
+    if (lowerMessage.includes("status") || lowerMessage.includes("current")) {
+      return `• Budget status: ${budgetData.status || "Active"}
+• Department: ${budgetData.department || "N/A"}
+• Fiscal year: ${budgetData.fiscalYear || "N/A"}`;
+    }
+    
+    return `• I can help you understand budget details and spending patterns
+• Ask me about budget amounts, verification, or current status
+• All data is transparent and verifiable through blockchain records`;
   }
 }
 

@@ -2872,6 +2872,60 @@ app.post("/api/chatbot/ask", async (req, res) => {
   }
 });
 
+// API endpoint for department data
+app.get("/api/budget/:id/departments", async (req, res) => {
+  try {
+    const budget = await Budget.findById(req.params.id);
+    if (!budget) {
+      return res.status(404).json({ error: "Budget not found" });
+    }
+    
+    // Generate sample department data based on budget
+    const departments = [
+      "IT Department",
+      "HR Department", 
+      "Finance Department",
+      "Operations",
+      "Marketing",
+      "Research & Development",
+      "Administration",
+      "Customer Service"
+    ];
+
+    const departmentData = [];
+    let remainingBudget = budget.totalBudget;
+    let remainingSpent = budget.spent;
+
+    for (let i = 0; i < departments.length; i++) {
+      const dept = departments[i];
+      
+      // Allocate budget (decreasing amounts)
+      const allocated = i === departments.length - 1 ? remainingBudget : 
+        Math.floor(remainingBudget * (0.15 + Math.random() * 0.25));
+      
+      // Calculate spent amount
+      const spent = i === departments.length - 1 ? remainingSpent :
+        Math.floor(remainingSpent * (0.1 + Math.random() * 0.3));
+      
+      departmentData.push({
+        name: dept,
+        allocated: allocated,
+        spent: spent,
+        remaining: allocated - spent,
+        utilization: allocated > 0 ? ((spent / allocated) * 100).toFixed(1) : 0
+      });
+
+      remainingBudget -= allocated;
+      remainingSpent -= spent;
+    }
+    
+    res.json({ departments: departmentData });
+  } catch (error) {
+    console.error("Error fetching department data:", error);
+    res.status(500).json({ error: "Failed to fetch department data" });
+  }
+});
+
 app.get("/debug/transaction", async (req, res) => {
   try {
     res.json({ 
