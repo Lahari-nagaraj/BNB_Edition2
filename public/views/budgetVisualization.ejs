@@ -233,50 +233,8 @@
   </div>
 </div>
 
-<!-- Chart.js CDN with multiple fallbacks -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.min.js" 
-        onerror="loadChartJSFallback1()"></script>
-<script>
-  function loadChartJSFallback1() {
-    console.log("Primary Chart.js CDN failed, trying fallback 1...");
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.min.js';
-    script.onerror = loadChartJSFallback2;
-    document.head.appendChild(script);
-  }
-  
-  function loadChartJSFallback2() {
-    console.log("Fallback 1 failed, trying fallback 2...");
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/chart.js@4.4.0/dist/chart.min.js';
-    script.onerror = loadChartJSFallback3;
-    document.head.appendChild(script);
-  }
-  
-  function loadChartJSFallback3() {
-    console.log("Fallback 2 failed, trying local Chart.js...");
-    const script = document.createElement('script');
-    script.src = '/node_modules/chart.js/dist/chart.min.js';
-    script.onerror = function() {
-      console.error("All Chart.js sources failed!");
-      showChartError();
-    };
-    document.head.appendChild(script);
-  }
-  
-  function showChartError() {
-    document.querySelectorAll('.chart-container').forEach(container => {
-      const canvas = container.querySelector('canvas');
-      if (canvas) {
-        canvas.style.display = 'none';
-        const errorDiv = document.createElement('div');
-        errorDiv.style.cssText = 'color: #ef4444; text-align: center; padding: 2rem; background: #fef2f2; border-radius: 8px;';
-        errorDiv.innerHTML = 'Chart.js failed to load. Please check your internet connection and try refreshing the page.';
-        container.appendChild(errorDiv);
-      }
-    });
-  }
-</script>
+<!-- Chart.js - Local copy (no internet required) -->
+<script src="/js/vendor/chart.js"></script>
 <!-- D3.js for Sankey diagram -->
 <script src="https://d3js.org/d3.v7.min.js"></script>
 <script src="https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
