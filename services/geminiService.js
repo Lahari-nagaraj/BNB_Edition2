@@ -1,6 +1,6 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "AIzaSyCQ5ABQWtUOk-8YpH5FqW4JdmKvoawrCbw");
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY );
 
 const generateBudgetContext = (budget, transactions, departments) => {
   const context = `
